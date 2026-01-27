@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ArtworkEntity } from './entities/artwork.entity';
+import { CollectionEntity } from './entities/collection.entity';
+import { ImageEntity } from './entities/image.entity';
+import { UserEntity } from './entities/user.entity';
 
 @Module({
   imports: [
@@ -19,6 +23,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         database: config.get<string>('DB_DATABASE'),
         schema: config.get<string>('DB_SCHEMA'),
         autoLoadEntities: true,
+        entities: [ArtworkEntity, CollectionEntity, ImageEntity, UserEntity],
         synchronize: true, // TODO: Change to migrations later
       }),
     }),
