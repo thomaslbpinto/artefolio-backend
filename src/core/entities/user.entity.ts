@@ -14,19 +14,25 @@ export class UserEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', length: 50, unique: true })
+  username: string;
+
+  @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @Column({ name: 'avatar_url', nullable: true })
-  avatarUrl?: string;
-
-  @Column({ name: 'password_hash', nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   passwordHash?: string;
 
-  @Column({ name: 'google_id', unique: true, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  bio?: string;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  avatarUrl?: string;
+
+  @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
   googleId?: string;
 
   @OneToMany(() => ArtworkEntity, (artwork) => artwork.user)

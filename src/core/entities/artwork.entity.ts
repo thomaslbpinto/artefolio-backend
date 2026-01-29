@@ -1,7 +1,7 @@
-import { ArtworkGenreEnum } from 'src/enums/artwork-genre.enum';
-import { ArtworkTechniqueEnum } from 'src/enums/artwork-technique.enum';
-import { ArtworkTypeEnum } from 'src/enums/artwork-type.enum';
-import { ArtworkVisibilityEnum } from 'src/enums/artwork-visibility.enum';
+import { ArtworkGenreEnum } from 'src/core/enums/artwork-genre.enum';
+import { ArtworkTechniqueEnum } from 'src/core/enums/artwork-technique.enum';
+import { ArtworkTypeEnum } from 'src/core/enums/artwork-type.enum';
+import { ArtworkVisibilityEnum } from 'src/core/enums/artwork-visibility.enum';
 import {
   Column,
   CreateDateColumn,

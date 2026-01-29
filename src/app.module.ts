@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ArtworkEntity } from './entities/artwork.entity';
-import { CollectionEntity } from './entities/collection.entity';
-import { ImageEntity } from './entities/image.entity';
-import { UserEntity } from './entities/user.entity';
+import { ArtworkEntity } from './core/entities/artwork.entity';
+import { CollectionEntity } from './core/entities/collection.entity';
+import { ImageEntity } from './core/entities/image.entity';
+import { UserEntity } from './core/entities/user.entity';
+import { UserModule } from './apis/user/user.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { UserEntity } from './entities/user.entity';
         synchronize: true, // TODO: Change to migrations later
       }),
     }),
+    UserModule,
   ],
   controllers: [],
   providers: [],
