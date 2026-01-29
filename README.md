@@ -1,4 +1,4 @@
-# artefolio
+# artefolio - backend
 
 Portifolio for artists.
 
