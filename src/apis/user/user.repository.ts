@@ -29,10 +29,12 @@ export class UserRepository {
 
     if (existingUser) {
       if (existingUser.email === dto.email) {
-        throw new ConflictException('Email already exists');
+        throw new ConflictException(
+          'An account with this email already exists',
+        );
       }
 
-      throw new ConflictException('Username already exists');
+      throw new ConflictException('This username is already taken');
     }
 
     const { password, ...rest } = dto;
