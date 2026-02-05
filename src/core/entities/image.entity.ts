@@ -9,7 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { ArtworkEntity } from './artwork.entity';
-import { ImageProviderEnum } from 'src/core/enums/image-provider.enum';
+import { ImageProviderEnum } from '../enums/image-provider.enum';
 
 @Entity('image')
 export class ImageEntity {
