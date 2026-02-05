@@ -21,5 +21,5 @@ export default new DataSource({
   ssl: sslConfig,
   synchronize: false,
   entities: [__dirname + '/../entities/**/*.entity{.ts,.js}'],
-  migrations: [__dirname + '/../migrations/*.{ts,js}'],
+  migrations: [__dirname + '/migrations/*.{ts,js}'],
 });
