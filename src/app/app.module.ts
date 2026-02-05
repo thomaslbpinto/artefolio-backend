@@ -36,8 +36,7 @@ import * as path from 'path';
           type: 'postgres',
           url: config.get<string>('DB_URL'),
           ssl: sslConfig,
-          synchronize: true, // TODO: Change to migrations later
-          autoLoadEntities: true,
+          synchronize: false,
           entities: [
             ArtworkEntity,
             CollectionEntity,
@@ -45,6 +44,7 @@ import * as path from 'path';
             UserEntity,
             RefreshTokenEntity,
           ],
+          autoLoadEntities: true,
         };
       },
     }),
