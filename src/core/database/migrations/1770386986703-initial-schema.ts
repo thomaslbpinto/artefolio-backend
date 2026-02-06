@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class InitialSchema1770296750958 implements MigrationInterface {
-  name = 'InitialSchema1770296750958';
+export class InitialSchema1770386986703 implements MigrationInterface {
+  name = 'InitialSchema1770386986703';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -15,6 +15,12 @@ export class InitialSchema1770296750958 implements MigrationInterface {
     );
     await queryRunner.query(
       `CREATE TYPE "public"."artwork_type_enum" AS ENUM('DIGITAL', 'PHYSICAL')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."artwork_technique_enum" AS ENUM()`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."artwork_genre_enum" AS ENUM()`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."artwork_visibility_enum" AS ENUM('PUBLIC', 'PRIVATE')`,
@@ -59,6 +65,8 @@ export class InitialSchema1770296750958 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "user"`);
     await queryRunner.query(`DROP TABLE "artwork"`);
     await queryRunner.query(`DROP TYPE "public"."artwork_visibility_enum"`);
+    await queryRunner.query(`DROP TYPE "public"."artwork_genre_enum"`);
+    await queryRunner.query(`DROP TYPE "public"."artwork_technique_enum"`);
     await queryRunner.query(`DROP TYPE "public"."artwork_type_enum"`);
     await queryRunner.query(`DROP TABLE "image"`);
     await queryRunner.query(`DROP TYPE "public"."image_provider_enum"`);

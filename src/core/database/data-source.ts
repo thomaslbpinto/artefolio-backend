@@ -6,13 +6,11 @@ import * as path from 'path';
 config();
 
 const caPath = process.env.DB_SSL_CA_PATH;
-const sslConfig = caPath
-  ? {
+const sslConfig = !caPath
+  ? false
+  : {
       rejectUnauthorized: true,
       ca: fs.readFileSync(path.resolve(caPath)).toString(),
-    }
-  : {
-      rejectUnauthorized: false,
     };
 
 export default new DataSource({

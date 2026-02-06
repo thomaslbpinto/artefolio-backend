@@ -23,13 +23,11 @@ import * as path from 'path';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const caPath = config.get<string>('DB_SSL_CA_PATH');
-        const sslConfig = caPath
-          ? {
+        const sslConfig = !caPath
+          ? false
+          : {
               rejectUnauthorized: true,
               ca: fs.readFileSync(path.resolve(caPath)).toString(),
-            }
-          : {
-              rejectUnauthorized: false,
             };
 
         return {
