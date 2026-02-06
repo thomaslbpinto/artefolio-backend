@@ -12,10 +12,7 @@ import { UserResponseDto } from 'src/core/dtos/user.response.dto';
 import { UserService } from './user.service';
 import { CreateUserDto } from 'src/core/dtos/create-user.dto';
 import { UpdateUserDto } from 'src/core/dtos/update-user.dto';
-import { Public } from 'src/core/decorators/public.decorator';
 
-// TODO
-@Public()
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
