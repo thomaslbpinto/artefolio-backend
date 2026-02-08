@@ -5,7 +5,7 @@ export class GoogleProfileDto {
   email: string;
 
   @Expose()
-  name?: string;
+  name: string;
 
   @Expose()
   googleId: string;
