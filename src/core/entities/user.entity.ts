@@ -23,16 +23,30 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ name: 'email_verified', type: 'boolean', default: false })
+  emailVerified: boolean;
+
+  @Column({
+    name: 'password_hash',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   passwordHash?: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   bio?: string;
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
+  @Column({ name: 'avatar_url', type: 'varchar', length: 500, nullable: true })
   avatarUrl?: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
+  @Column({
+    name: 'google_id',
+    type: 'varchar',
+    length: 255,
+    unique: true,
+    nullable: true,
+  })
   googleId?: string;
 
   @OneToMany(() => ArtworkEntity, (artwork) => artwork.user)

@@ -1,4 +1,5 @@
-import { Expose } from 'class-transformer';
+import { Expose, Transform } from 'class-transformer';
+import { UserEntity } from '../entities/user.entity';
 
 export class UserResponseDto {
   @Expose()
@@ -12,6 +13,13 @@ export class UserResponseDto {
 
   @Expose()
   email: string;
+
+  @Expose()
+  emailVerified: boolean;
+
+  @Expose()
+  @Transform(({ obj }: { obj: UserEntity }) => !!obj.googleId)
+  isGoogleLinked: boolean;
 
   @Expose()
   bio?: string;

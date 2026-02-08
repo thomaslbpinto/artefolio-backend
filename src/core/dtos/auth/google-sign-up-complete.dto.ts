@@ -1,7 +1,5 @@
 import {
-  IsEmail,
   IsNotEmpty,
-  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -9,18 +7,6 @@ import {
 } from 'class-validator';
 
 export class GoogleSignUpCompleteDto {
-  @IsString()
-  @IsNotEmpty()
-  googleId: string;
-
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
-  @IsString()
-  @IsOptional()
-  avatarUrl?: string;
-
   @IsString()
   @IsNotEmpty()
   @MinLength(2)

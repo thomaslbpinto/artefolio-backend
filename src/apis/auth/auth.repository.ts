@@ -10,6 +10,12 @@ export class AuthRepository {
     private readonly userRepository: Repository<UserEntity>,
   ) {}
 
+  async findUserById(id: number): Promise<UserEntity | null> {
+    return await this.userRepository.findOne({
+      where: { id },
+    });
+  }
+
   async findUserByEmail(email: string): Promise<UserEntity | null> {
     return await this.userRepository.findOne({
       where: { email },
@@ -67,8 +73,33 @@ export class AuthRepository {
       email,
       googleId,
       avatarUrl,
+      emailVerified: true,
     });
 
     return await this.userRepository.save(user);
+  }
+
+  async updateUserWithGoogleId(
+    userId: number,
+    googleId: string,
+    avatarUrl?: string,
+  ): Promise<UserEntity> {
+    const user = await this.userRepository.findOneOrFail({
+      where: { id: userId },
+    });
+
+    user.googleId = googleId;
+    user.emailVerified = true;
+
+    if (avatarUrl !== undefined) {
+      user.avatarUrl = avatarUrl;
+    }
+
+    return this.userRepository.save(user);
+  }
+
+  // TODO: .update é o correto mesmo?
+  async markEmailAsVerified(userId: number): Promise<void> {
+    await this.userRepository.update(userId, { emailVerified: true });
   }
 }
