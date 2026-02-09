@@ -98,8 +98,11 @@ export class AuthRepository {
     return this.userRepository.save(user);
   }
 
-  // TODO: .update é o correto mesmo?
   async markEmailAsVerified(userId: number): Promise<void> {
     await this.userRepository.update(userId, { emailVerified: true });
+  }
+
+  async updatePassword(userId: number, passwordHash: string): Promise<void> {
+    await this.userRepository.update(userId, { passwordHash });
   }
 }

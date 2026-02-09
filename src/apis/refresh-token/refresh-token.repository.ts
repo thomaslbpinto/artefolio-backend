@@ -1,46 +1,37 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
-import { RefreshTokenEntity } from 'src/core/entities/refresh-token.entity';
+import { TokenRepository } from '../token/token.repository';
+import { TokenEntity } from 'src/core/entities/token.entity';
+import { TokenType } from 'src/core/enums/token-type.enum';
 
 @Injectable()
 export class RefreshTokenRepository {
-  constructor(
-    @InjectRepository(RefreshTokenEntity)
-    private readonly repository: Repository<RefreshTokenEntity>,
-  ) {}
+  constructor(private readonly tokenRepository: TokenRepository) {}
 
   async createRefreshToken(
     userId: number,
     token: string,
     expiresAt: Date,
-  ): Promise<RefreshTokenEntity> {
-    const refreshToken = this.repository.create({
+  ): Promise<TokenEntity> {
+    return await this.tokenRepository.createToken(
       userId,
       token,
+      TokenType.REFRESH,
       expiresAt,
-    });
-    return await this.repository.save(refreshToken);
+    );
   }
 
-  async findByToken(token: string): Promise<RefreshTokenEntity | null> {
-    return await this.repository.findOne({
-      where: { token },
-      relations: ['user'],
-    });
+  async findByToken(token: string): Promise<TokenEntity | null> {
+    return await this.tokenRepository.findByTokenAndType(
+      token,
+      TokenType.REFRESH,
+    );
   }
 
   async deleteByToken(token: string): Promise<void> {
-    await this.repository.delete({ token });
+    await this.tokenRepository.deleteByTokenAndType(token, TokenType.REFRESH);
   }
 
   async deleteByUserId(userId: number): Promise<void> {
-    await this.repository.delete({ userId });
-  }
-
-  async deleteExpiredTokens(): Promise<void> {
-    await this.repository.delete({
-      expiresAt: LessThan(new Date()),
-    });
+    await this.tokenRepository.deleteByUserIdAndType(userId, TokenType.REFRESH);
   }
 }

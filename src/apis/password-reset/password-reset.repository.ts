@@ -4,7 +4,7 @@ import { TokenEntity } from 'src/core/entities/token.entity';
 import { TokenType } from 'src/core/enums/token-type.enum';
 
 @Injectable()
-export class EmailVerificationRepository {
+export class PasswordResetRepository {
   constructor(private readonly tokenRepository: TokenRepository) {}
 
   async createToken(
@@ -15,7 +15,7 @@ export class EmailVerificationRepository {
     return await this.tokenRepository.createToken(
       userId,
       token,
-      TokenType.EMAIL_VERIFICATION,
+      TokenType.PASSWORD_FORGOT,
       expiresAt,
     );
   }
@@ -23,7 +23,7 @@ export class EmailVerificationRepository {
   async findByToken(token: string): Promise<TokenEntity | null> {
     return await this.tokenRepository.findByTokenAndType(
       token,
-      TokenType.EMAIL_VERIFICATION,
+      TokenType.PASSWORD_FORGOT,
     );
   }
 
@@ -34,7 +34,7 @@ export class EmailVerificationRepository {
   async deleteTokensByUserId(userId: number): Promise<void> {
     await this.tokenRepository.deleteByUserIdAndType(
       userId,
-      TokenType.EMAIL_VERIFICATION,
+      TokenType.PASSWORD_FORGOT,
     );
   }
 }

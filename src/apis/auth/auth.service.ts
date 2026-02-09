@@ -14,14 +14,15 @@ import { DataSource } from 'typeorm';
 import { AuthRepository } from './auth.repository';
 import { RefreshTokenRepository } from '../refresh-token/refresh-token.repository';
 import { EmailVerificationRepository } from '../email-verification/email-verification.repository';
+import { PasswordResetRepository } from '../password-reset/password-reset.repository';
 import { EmailService } from '../email/email.service';
 import { SignInDto } from 'src/core/dtos/auth/sign-in.dto';
 import { SignUpDto } from 'src/core/dtos/auth/sign-up.dto';
 import { AuthResponseDto } from 'src/core/dtos/auth/auth-response.dto';
 import { GoogleProfileDto } from 'src/core/dtos/auth/google-profile.dto';
-import { UserResponseDto } from 'src/core/dtos/user.response.dto';
 import { UserEntity } from 'src/core/entities/user.entity';
-import { EmailVerificationTokenEntity } from 'src/core/entities/email-verification-token.entity';
+import { TokenEntity } from 'src/core/entities/token.entity';
+import { TokenType } from 'src/core/enums/token-type.enum';
 import { CLASS_TRANSFORMER_OPTIONS } from 'src/core/configs/class-transformer.config';
 import { hashPassword, comparePassword } from 'src/core/utils/password.util';
 import {
@@ -38,6 +39,7 @@ import { GoogleSignUpCompleteDto } from 'src/core/dtos/auth/google-sign-up-compl
 
 const PENDING_JWT_EXPIRES_IN = '10m';
 const EMAIL_VERIFICATION_EXPIRES_HOURS = 1;
+const PASSWORD_RESET_EXPIRES_HOURS = 1;
 
 @Injectable()
 export class AuthService {
@@ -45,6 +47,7 @@ export class AuthService {
     private readonly authRepository: AuthRepository,
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly emailVerificationRepository: EmailVerificationRepository,
+    private readonly passwordResetRepository: PasswordResetRepository,
     private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -151,12 +154,11 @@ export class AuthService {
         expiresAt.getHours() + EMAIL_VERIFICATION_EXPIRES_HOURS,
       );
 
-      const tokenRepository = queryRunner.manager.getRepository(
-        EmailVerificationTokenEntity,
-      );
+      const tokenRepository = queryRunner.manager.getRepository(TokenEntity);
       const verificationToken = tokenRepository.create({
         userId: user.id,
         token,
+        type: TokenType.EMAIL_VERIFICATION,
         expiresAt,
       });
       await queryRunner.manager.save(verificationToken);
@@ -428,11 +430,11 @@ export class AuthService {
     );
   }
 
-  async logout(refreshToken: string): Promise<void> {
+  async signOut(refreshToken: string): Promise<void> {
     await this.refreshTokenRepository.deleteByToken(refreshToken);
   }
 
-  async logoutAll(userId: number): Promise<void> {
+  async signOutAll(userId: number): Promise<void> {
     await this.refreshTokenRepository.deleteByUserId(userId);
   }
 
@@ -551,5 +553,48 @@ export class AuthService {
     }
 
     await this.createAndSendVerificationToken(user);
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.authRepository.findUserByEmail(email);
+
+    if (!user || !user.passwordHash) {
+      return;
+    }
+    await this.passwordResetRepository.deleteTokensByUserId(user.id);
+
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + PASSWORD_RESET_EXPIRES_HOURS);
+
+    await this.passwordResetRepository.createToken(user.id, token, expiresAt);
+
+    await this.emailService.sendPasswordResetEmail(
+      user.email,
+      user.name,
+      token,
+    );
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const resetToken = await this.passwordResetRepository.findByToken(token);
+
+    if (!resetToken) {
+      throw new BadRequestException('Invalid reset token.');
+    }
+
+    if (resetToken.used) {
+      throw new BadRequestException('Reset token already used.');
+    }
+
+    if (resetToken.expiresAt < new Date()) {
+      throw new BadRequestException('Reset token expired.');
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+
+    await this.authRepository.updatePassword(resetToken.userId, passwordHash);
+    await this.passwordResetRepository.markAsUsed(resetToken.id);
+    await this.refreshTokenRepository.deleteByUserId(resetToken.userId);
   }
 }

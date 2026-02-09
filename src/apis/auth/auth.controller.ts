@@ -13,10 +13,10 @@ import { AuthService } from './auth.service';
 import { SignInDto } from 'src/core/dtos/auth/sign-in.dto';
 import { SignUpDto } from 'src/core/dtos/auth/sign-up.dto';
 import { GoogleSignUpCompleteDto } from 'src/core/dtos/auth/google-sign-up-complete.dto';
-import {
-  VerifyEmailDto,
-  ResendVerificationEmailDto,
-} from 'src/core/dtos/auth/email-verification.dto';
+import { VerifyEmailDto } from 'src/core/dtos/auth/verify-email.dto';
+import { ResendVerificationEmailDto } from 'src/core/dtos/auth/resend-verification-email.dto';
+import { ForgotPasswordDto } from 'src/core/dtos/auth/forgot-password.dto';
+import { ResetPasswordDto } from 'src/core/dtos/auth/reset-password.dto';
 import { AuthResponseDto } from 'src/core/dtos/auth/auth-response.dto';
 import { GoogleProfileDto } from 'src/core/dtos/auth/google-profile.dto';
 import { Public } from 'src/core/decorators/public.decorator';
@@ -169,8 +169,8 @@ export class AuthController {
   }
 
   @Public()
-  @Post('logout')
-  async logout(
+  @Post('sign-out')
+  async signOut(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<{ message: string }> {
@@ -179,25 +179,43 @@ export class AuthController {
       | undefined;
 
     if (refreshToken) {
-      await this.authService.logout(refreshToken);
+      await this.authService.signOut(refreshToken);
     }
 
     response.clearCookie(COOKIE_ACCESS_TOKEN, { path: '/' });
     response.clearCookie(COOKIE_REFRESH_TOKEN, { path: '/' });
 
-    return { message: 'Logged out successfully' };
+    return { message: 'Signed out successfully' };
   }
 
-  @Post('logout-all')
-  async logoutAll(
+  @Post('sign-out-all')
+  async signOutAll(
     @CurrentUser() user: UserEntity,
     @Res({ passthrough: true }) response: Response,
   ): Promise<{ message: string }> {
-    await this.authService.logoutAll(user.id);
+    await this.authService.signOutAll(user.id);
 
     response.clearCookie(COOKIE_ACCESS_TOKEN, { path: '/' });
     response.clearCookie(COOKIE_REFRESH_TOKEN, { path: '/' });
 
     return { message: 'Logged out from all devices successfully' };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+  ): Promise<{ message: string }> {
+    await this.authService.forgotPassword(dto.email);
+    return { message: 'If the email exists, a reset link has been sent' };
+  }
+
+  @Public()
+  @Post('reset-password')
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+  ): Promise<{ message: string }> {
+    await this.authService.resetPassword(dto.token, dto.password);
+    return { message: 'Password reset successfully' };
   }
 }

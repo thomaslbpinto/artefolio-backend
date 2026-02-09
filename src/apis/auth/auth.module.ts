@@ -6,22 +6,19 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthRepository } from './auth.repository';
+import { TokenRepository } from '../token/token.repository';
 import { RefreshTokenRepository } from '../refresh-token/refresh-token.repository';
 import { EmailVerificationRepository } from '../email-verification/email-verification.repository';
+import { PasswordResetRepository } from '../password-reset/password-reset.repository';
 import { UserEntity } from 'src/core/entities/user.entity';
-import { RefreshTokenEntity } from 'src/core/entities/refresh-token.entity';
-import { EmailVerificationTokenEntity } from 'src/core/entities/email-verification-token.entity';
+import { TokenEntity } from 'src/core/entities/token.entity';
 import { JwtStrategy } from 'src/core/strategies/jwt.strategy';
 import { GoogleStrategy } from 'src/core/strategies/google.strategy';
 import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      UserEntity,
-      RefreshTokenEntity,
-      EmailVerificationTokenEntity,
-    ]),
+    TypeOrmModule.forFeature([UserEntity, TokenEntity]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -37,8 +34,10 @@ import { EmailModule } from '../email/email.module';
   providers: [
     AuthService,
     AuthRepository,
+    TokenRepository,
     RefreshTokenRepository,
     EmailVerificationRepository,
+    PasswordResetRepository,
     JwtStrategy,
     GoogleStrategy,
   ],

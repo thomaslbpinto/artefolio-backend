@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class InitialSchema1770471236817 implements MigrationInterface {
-  name = 'InitialSchema1770471236817';
+export class InitialSchema1770584893182 implements MigrationInterface {
+  name = 'InitialSchema1770584893182';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -32,7 +32,13 @@ export class InitialSchema1770471236817 implements MigrationInterface {
       `CREATE TABLE "user" ("id" SERIAL NOT NULL, "name" character varying(100) NOT NULL, "username" character varying(50) NOT NULL, "email" character varying(255) NOT NULL, "email_verified" boolean NOT NULL DEFAULT false, "password_hash" character varying(255), "bio" character varying(255), "avatar_url" character varying(500), "google_id" character varying(255), "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP WITH TIME ZONE, CONSTRAINT "UQ_78a916df40e02a9deb1c4b75edb" UNIQUE ("username"), CONSTRAINT "UQ_e12875dfb3b1d92d7d7c5377e22" UNIQUE ("email"), CONSTRAINT "UQ_7adac5c0b28492eb292d4a93871" UNIQUE ("google_id"), CONSTRAINT "PK_cace4a159ff9f2512dd42373760" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "refresh_token" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "user_id" integer NOT NULL, "token" character varying(500) NOT NULL, "expires_at" TIMESTAMP WITH TIME ZONE NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_c31d0a2f38e6e99110df62ab0af" UNIQUE ("token"), CONSTRAINT "PK_b575dd3c21fb0831013c909e7fe" PRIMARY KEY ("id"))`,
+      `CREATE TYPE "public"."token_type_enum" AS ENUM('refresh', 'email_verification', 'password_forgot')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "token" ("id" SERIAL NOT NULL, "user_id" integer NOT NULL, "token" character varying(500) NOT NULL, "type" "public"."token_type_enum" NOT NULL, "used" boolean NOT NULL DEFAULT false, "expires_at" TIMESTAMP WITH TIME ZONE NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_82fae97f905930df5d62a702fc9" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_f14413cd0a96dd8343ddc1a0cf" ON "token" ("type", "token") `,
     );
     await queryRunner.query(
       `ALTER TABLE "image" ADD CONSTRAINT "FK_9e65ff974b18a9a565e57b6dde1" FOREIGN KEY ("artwork_id") REFERENCES "artwork"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
@@ -44,13 +50,13 @@ export class InitialSchema1770471236817 implements MigrationInterface {
       `ALTER TABLE "artwork" ADD CONSTRAINT "FK_909d0cf9b5455a8ba1fe884de16" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "refresh_token" ADD CONSTRAINT "FK_6bbe63d2fe75e7f0ba1710351d4" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+      `ALTER TABLE "token" ADD CONSTRAINT "FK_e50ca89d635960fda2ffeb17639" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "refresh_token" DROP CONSTRAINT "FK_6bbe63d2fe75e7f0ba1710351d4"`,
+      `ALTER TABLE "token" DROP CONSTRAINT "FK_e50ca89d635960fda2ffeb17639"`,
     );
     await queryRunner.query(
       `ALTER TABLE "artwork" DROP CONSTRAINT "FK_909d0cf9b5455a8ba1fe884de16"`,
@@ -61,7 +67,11 @@ export class InitialSchema1770471236817 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "image" DROP CONSTRAINT "FK_9e65ff974b18a9a565e57b6dde1"`,
     );
-    await queryRunner.query(`DROP TABLE "refresh_token"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f14413cd0a96dd8343ddc1a0cf"`,
+    );
+    await queryRunner.query(`DROP TABLE "token"`);
+    await queryRunner.query(`DROP TYPE "public"."token_type_enum"`);
     await queryRunner.query(`DROP TABLE "user"`);
     await queryRunner.query(`DROP TABLE "artwork"`);
     await queryRunner.query(`DROP TYPE "public"."artwork_visibility_enum"`);

@@ -6,7 +6,7 @@ import { ArtworkEntity } from '../core/entities/artwork.entity';
 import { CollectionEntity } from '../core/entities/collection.entity';
 import { ImageEntity } from '../core/entities/image.entity';
 import { UserEntity } from '../core/entities/user.entity';
-import { RefreshTokenEntity } from '../core/entities/refresh-token.entity';
+import { TokenEntity } from '../core/entities/token.entity';
 import { UserModule } from '../apis/user/user.module';
 import { AuthModule } from '../apis/auth/auth.module';
 import { JwtAuthGuard } from '../core/guards/jwt-auth.guard';
@@ -40,7 +40,7 @@ import * as path from 'path';
             CollectionEntity,
             ImageEntity,
             UserEntity,
-            RefreshTokenEntity,
+            TokenEntity,
           ],
           autoLoadEntities: true,
         };
