@@ -3,8 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
-import { COOKIE_ACCESS_TOKEN } from '../constants/cookie.constants';
-import { AuthRepository } from '../../apis/auth/auth.repository';
+import { COOKIE_ACCESS_TOKEN } from '../constants/cookie.constant';
+import { UserRepository } from 'src/apis/user/user.repository';
 
 export interface JwtPayload {
   sub: number;
@@ -12,8 +12,7 @@ export interface JwtPayload {
 }
 
 function extractJwtFromCookie(req: Request): string | null {
-  const cookies = (req as Request & { cookies?: Record<string, string> })
-    .cookies;
+  const cookies = (req as Request & { cookies?: Record<string, string> }).cookies;
   return (cookies?.[COOKIE_ACCESS_TOKEN] as string | undefined) ?? null;
 }
 
@@ -21,30 +20,28 @@ function extractJwtFromCookie(req: Request): string | null {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly configService: ConfigService,
-    private readonly authRepository: AuthRepository,
+    private readonly userRepository: UserRepository,
   ) {
     const jwtSecret = configService.get<string>('JWT_SECRET');
 
     if (!jwtSecret) {
-      throw new HttpException(
-        'JWT_SECRET not configured',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException('JWT_SECRET not configured', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     super({
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        extractJwtFromCookie,
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ]),
+      jwtFromRequest: ExtractJwt.fromExtractors([extractJwtFromCookie, ExtractJwt.fromAuthHeaderAsBearerToken()]),
       ignoreExpiration: false,
       secretOrKey: jwtSecret,
     });
   }
 
   async validate(payload: JwtPayload) {
-    const user = await this.authRepository.findUserById(payload.sub);
-    if (!user) return null;
+    const user = await this.userRepository.findOne(payload.sub);
+
+    if (!user) {
+      return null;
+    }
+
     return user;
   }
 }

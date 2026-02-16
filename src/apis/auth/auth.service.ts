@@ -5,130 +5,103 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Response } from 'express';
-import { randomBytes } from 'crypto';
+import { ConfigService } from '@nestjs/config';
+import { Response, Request } from 'express';
 import { plainToInstance } from 'class-transformer';
 import { DataSource } from 'typeorm';
-import { AuthRepository } from './auth.repository';
-import { RefreshTokenRepository } from '../refresh-token/refresh-token.repository';
-import { EmailVerificationRepository } from '../email-verification/email-verification.repository';
-import { PasswordResetRepository } from '../password-reset/password-reset.repository';
+import { UserRepository } from '../user/user.repository';
+import { RefreshAccessTokenRepository } from '../refresh-access-token/refresh-access-token.repository';
+import { EmailVerificationTokenRepository } from '../email-verification-token/email-verification-token.repository';
+import { PasswordResetTokenRepository } from '../password-reset-token/password-reset-token.repository';
 import { EmailService } from '../email/email.service';
 import { SignInDto } from 'src/core/dtos/auth/sign-in.dto';
 import { SignUpDto } from 'src/core/dtos/auth/sign-up.dto';
 import { AuthResponseDto } from 'src/core/dtos/auth/auth-response.dto';
 import { GoogleProfileDto } from 'src/core/dtos/auth/google-profile.dto';
+import { GoogleSignUpCompleteDto } from 'src/core/dtos/auth/google-sign-up-complete.dto';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { TokenEntity } from 'src/core/entities/token.entity';
 import { TokenType } from 'src/core/enums/token-type.enum';
 import { CLASS_TRANSFORMER_OPTIONS } from 'src/core/configs/class-transformer.config';
 import { hashPassword, comparePassword } from 'src/core/utils/password.util';
 import {
-  COOKIE_ACCESS_TOKEN,
-  COOKIE_REFRESH_TOKEN,
-  COOKIE_PENDING_GOOGLE_SIGNUP,
-  COOKIE_PENDING_GOOGLE_LINK,
-  ACCESS_TOKEN_MAX_AGE_MS,
-  REFRESH_TOKEN_MAX_AGE_MS,
-  PENDING_GOOGLE_MAX_AGE_MS,
-} from 'src/core/constants/cookie.constants';
-import type { GoogleStrategyProfile } from 'src/core/strategies/google.strategy';
-import { GoogleSignUpCompleteDto } from 'src/core/dtos/auth/google-sign-up-complete.dto';
-
-const PENDING_JWT_EXPIRES_IN = '10m';
-const EMAIL_VERIFICATION_EXPIRES_HOURS = 1;
-const PASSWORD_RESET_EXPIRES_HOURS = 1;
+  assertTokenExists,
+  assertTokenNotExpired,
+  generateHexToken,
+  generateExpirationInDays,
+  generateExpirationInHours,
+} from 'src/core/utils/token.util';
+import {
+  clearAuthCookies,
+  getRefreshTokenFromCookie,
+  setAccessTokenCookie,
+  setRefreshTokenCookie,
+} from 'src/core/helpers/auth-cookie.helper';
+import { PendingGoogleService } from './services/pending-google.service';
+import { UserResponseDto } from 'src/core/dtos/user.response.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly authRepository: AuthRepository,
-    private readonly refreshTokenRepository: RefreshTokenRepository,
-    private readonly emailVerificationRepository: EmailVerificationRepository,
-    private readonly passwordResetRepository: PasswordResetRepository,
+    private readonly userRepository: UserRepository,
+    private readonly refreshAccessTokenRepository: RefreshAccessTokenRepository,
+    private readonly emailVerificationTokenRepository: EmailVerificationTokenRepository,
+    private readonly passwordResetTokenRepository: PasswordResetTokenRepository,
     private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
+    private readonly pendingGoogleService: PendingGoogleService,
   ) {}
 
-  getFrontendUrl(): string {
-    return (
-      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3001'
-    );
-  }
+  private async authenticateUserAndCreateSession(
+    response: Response,
+    user: UserEntity | UserResponseDto,
+  ): Promise<AuthResponseDto> {
+    const accessToken = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+    });
 
-  clearPendingGoogleCookies(response: Response): void {
-    response.clearCookie(COOKIE_PENDING_GOOGLE_SIGNUP, { path: '/' });
-    response.clearCookie(COOKIE_PENDING_GOOGLE_LINK, { path: '/' });
-  }
+    const refreshToken = generateHexToken(64);
 
-  clearPendingSignupCookie(response: Response): void {
-    response.clearCookie(COOKIE_PENDING_GOOGLE_SIGNUP, { path: '/' });
-  }
+    await this.refreshAccessTokenRepository.createToken(user.id, refreshToken, generateExpirationInDays(30));
 
-  clearPendingLinkCookie(response: Response): void {
-    response.clearCookie(COOKIE_PENDING_GOOGLE_LINK, { path: '/' });
-  }
+    setAccessTokenCookie(response, accessToken, this.configService);
+    setRefreshTokenCookie(response, refreshToken, this.configService);
 
-  getCookieOptions(): {
-    httpOnly: boolean;
-    secure: boolean;
-    sameSite: 'lax' | 'strict' | 'none';
-    path: string;
-  } {
-    const isProduction =
-      this.configService.get<string>('NODE_ENV') === 'production';
-
-    return {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
-      path: '/',
-    };
+    return plainToInstance(AuthResponseDto, { user }, CLASS_TRANSFORMER_OPTIONS);
   }
 
   async signIn(dto: SignInDto, response: Response): Promise<AuthResponseDto> {
-    this.clearPendingGoogleCookies(response);
+    this.pendingGoogleService.clearAllCookies(response);
 
-    const existingUser = await this.authRepository.findUserByEmail(dto.email);
+    const user = await this.userRepository.findByEmail(dto.email);
 
-    if (!existingUser || !existingUser.passwordHash) {
+    if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials.');
     }
 
-    const isPasswordValid = await comparePassword(
-      dto.password,
-      existingUser.passwordHash,
-    );
-
-    if (!isPasswordValid) {
+    if (!(await comparePassword(dto.password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid credentials.');
     }
 
-    if (!existingUser.emailVerified && !existingUser.googleId) {
-      await this.createAndSendVerificationToken(existingUser);
+    if (!user.emailVerified && !user.googleId) {
+      await this.createTokenAndSendVerificationEmail(user);
     }
 
-    return this.setAuthCookiesAndReturnUser(existingUser, response);
+    return this.authenticateUserAndCreateSession(response, user);
   }
 
   async signUp(dto: SignUpDto, response: Response): Promise<AuthResponseDto> {
-    this.clearPendingGoogleCookies(response);
+    this.pendingGoogleService.clearAllCookies(response);
 
-    const existingUserWithEmail =
-      await this.authRepository.findUserByEmailWithDeleted(dto.email);
-
-    if (existingUserWithEmail) {
+    if (await this.userRepository.findByEmailWithDeleted(dto.email)) {
       throw new ConflictException('An account with this email already exists.');
     }
 
-    const existingUserWithUsername =
-      await this.authRepository.findUserByUsernameWithDeleted(dto.username);
-
-    if (existingUserWithUsername) {
+    if (await this.userRepository.findByUsernameWithDeleted(dto.username)) {
       throw new ConflictException('This username is already taken.');
     }
 
@@ -140,405 +113,179 @@ export class AuthService {
 
     try {
       const userRepository = queryRunner.manager.getRepository(UserEntity);
-      const user = userRepository.create({
-        name: dto.name,
-        username: dto.username,
-        email: dto.email,
-        passwordHash,
-      });
-      await queryRunner.manager.save(user);
-
-      const token = randomBytes(32).toString('hex');
-      const expiresAt = new Date();
-      expiresAt.setHours(
-        expiresAt.getHours() + EMAIL_VERIFICATION_EXPIRES_HOURS,
-      );
-
       const tokenRepository = queryRunner.manager.getRepository(TokenEntity);
-      const verificationToken = tokenRepository.create({
-        userId: user.id,
-        token,
-        type: TokenType.EMAIL_VERIFICATION,
-        expiresAt,
-      });
-      await queryRunner.manager.save(verificationToken);
 
-      await this.emailService.sendVerificationEmail(
-        user.email,
-        user.name,
-        token,
+      const user = await userRepository.save(userRepository.create({ ...dto, passwordHash }));
+
+      const token = generateHexToken(32);
+
+      await tokenRepository.save(
+        tokenRepository.create({
+          userId: user.id,
+          token: token,
+          type: TokenType.EMAIL_VERIFICATION,
+          expiresAt: generateExpirationInHours(24),
+        }),
       );
+
+      await this.emailService.sendVerificationEmail(user.email, user.name, token);
 
       await queryRunner.commitTransaction();
 
-      return this.setAuthCookiesAndReturnUser(user, response);
+      return this.authenticateUserAndCreateSession(response, user);
     } catch {
       await queryRunner.rollbackTransaction();
-      throw new InternalServerErrorException(
-        'Failed to create account. Please try again.',
-      );
+
+      throw new InternalServerErrorException('Failed to create account.');
     } finally {
       await queryRunner.release();
     }
   }
 
-  async handleGoogleCallback(
-    profile: GoogleStrategyProfile,
-    response: Response,
-  ): Promise<void> {
-    const frontendUrl = this.getFrontendUrl();
+  async handleGoogleCallback(profile: GoogleProfileDto, response: Response): Promise<void> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3001';
 
-    const existingUserByGoogleId = await this.authRepository.findUserByGoogleId(
-      profile.googleId,
-    );
+    const user = await this.userRepository.findByGoogleId(profile.googleId);
 
-    if (existingUserByGoogleId) {
-      await this.setAuthCookiesAndReturnUser(existingUserByGoogleId, response);
+    if (user) {
+      await this.authenticateUserAndCreateSession(response, user);
       response.redirect(frontendUrl);
       return;
     }
 
-    const userByEmail = await this.authRepository.findUserByEmail(
-      profile.email,
-    );
-
-    if (userByEmail && !userByEmail.googleId) {
-      const token = this.createPendingToken(
-        profile,
-        COOKIE_PENDING_GOOGLE_LINK,
-      );
-
-      const options = this.getCookieOptions();
-
-      response.cookie(COOKIE_PENDING_GOOGLE_LINK, token, {
-        ...options,
-        maxAge: PENDING_GOOGLE_MAX_AGE_MS,
-      });
-
+    if (await this.userRepository.findByEmail(profile.email)) {
+      const linkToken = this.pendingGoogleService.createLinkToken(profile);
+      this.pendingGoogleService.setLinkCookie(response, linkToken);
       response.redirect(`${frontendUrl}/link-google-account`);
-
       return;
     }
 
-    const token = this.createPendingToken(
-      profile,
-      COOKIE_PENDING_GOOGLE_SIGNUP,
-    );
-
-    const options = this.getCookieOptions();
-
-    response.cookie(COOKIE_PENDING_GOOGLE_SIGNUP, token, {
-      ...options,
-      maxAge: PENDING_GOOGLE_MAX_AGE_MS,
-    });
-
+    const signUpToken = this.pendingGoogleService.createSignUpToken(profile);
+    this.pendingGoogleService.setSignUpCookie(response, signUpToken);
     response.redirect(`${frontendUrl}/complete-google-sign-up`);
-  }
-
-  getPendingSignup(response: Response): Promise<GoogleProfileDto | null> {
-    const token = (
-      response.req.cookies as Record<string, string> | undefined
-    )?.[COOKIE_PENDING_GOOGLE_SIGNUP];
-
-    if (!token) {
-      return Promise.resolve(null);
-    }
-
-    const payload = this.verifyPendingToken<GoogleStrategyProfile>(
-      token,
-      COOKIE_PENDING_GOOGLE_SIGNUP,
-    );
-    if (!payload) return Promise.resolve(null);
-
-    return Promise.resolve(
-      plainToInstance(
-        GoogleProfileDto,
-        {
-          email: payload.email,
-          name: payload.name,
-          googleId: payload.googleId,
-          avatarUrl: payload.avatarUrl,
-        },
-        CLASS_TRANSFORMER_OPTIONS,
-      ),
-    );
-  }
-
-  getPendingLink(response: Response): Promise<GoogleProfileDto | null> {
-    const token = (
-      response.req.cookies as Record<string, string> | undefined
-    )?.[COOKIE_PENDING_GOOGLE_LINK];
-
-    if (!token) {
-      return Promise.resolve(null);
-    }
-
-    const payload = this.verifyPendingToken<GoogleStrategyProfile>(
-      token,
-      COOKIE_PENDING_GOOGLE_LINK,
-    );
-
-    if (!payload) {
-      return Promise.resolve(null);
-    }
-
-    return Promise.resolve(
-      plainToInstance(
-        GoogleProfileDto,
-        {
-          email: payload.email,
-          name: payload.name,
-          googleId: payload.googleId,
-          avatarUrl: payload.avatarUrl,
-        },
-        CLASS_TRANSFORMER_OPTIONS,
-      ),
-    );
   }
 
   async completeGoogleSignUp(
     dto: GoogleSignUpCompleteDto,
-    res: Response,
+    request: Request,
+    response: Response,
   ): Promise<AuthResponseDto> {
-    const token = (res.req.cookies as Record<string, string> | undefined)?.[
-      COOKIE_PENDING_GOOGLE_SIGNUP
-    ];
-
-    if (!token) {
-      throw new BadRequestException(
-        'No pending signup found. Please start the signup process again.',
-      );
-    }
-
-    const payload = this.verifyPendingToken<GoogleStrategyProfile>(
-      token,
-      COOKIE_PENDING_GOOGLE_SIGNUP,
-    );
+    const payload = this.pendingGoogleService.getSignUpCookie(request);
 
     if (!payload) {
-      throw new BadRequestException(
-        'Invalid or expired pending signup. Please start the signup process again.',
-      );
+      throw new BadRequestException('Invalid or expired pending signup.');
     }
 
-    const existingUserWithEmail =
-      await this.authRepository.findUserByEmailWithDeleted(payload.email);
+    this.pendingGoogleService.clearSignUpCookie(response);
 
-    if (existingUserWithEmail) {
-      res.clearCookie(COOKIE_PENDING_GOOGLE_SIGNUP, { path: '/' });
+    if (await this.userRepository.findByEmailWithDeleted(payload.email)) {
       throw new ConflictException('An account with this email already exists.');
     }
 
-    res.clearCookie(COOKIE_PENDING_GOOGLE_SIGNUP, { path: '/' });
+    const username = dto.username;
 
-    const existingUserWithUsername =
-      await this.authRepository.findUserByUsernameWithDeleted(dto.username);
-
-    if (existingUserWithUsername) {
+    if (await this.userRepository.findByUsernameWithDeleted(username)) {
       throw new ConflictException('This username is already taken.');
     }
 
-    const user = await this.authRepository.createUserWithGoogleId(
-      dto.name,
-      dto.username,
-      payload.email,
-      payload.googleId,
-      payload.avatarUrl,
-    );
+    const user = await this.userRepository.create({
+      name: dto.name,
+      username: username,
+      email: payload.email,
+      googleId: payload.googleId,
+      avatarUrl: payload.avatarUrl,
+    });
 
-    return this.setAuthCookiesAndReturnUser(user, res);
+    return this.authenticateUserAndCreateSession(response, user);
   }
 
-  async linkGoogleAccount(response: Response): Promise<AuthResponseDto> {
-    const token = (
-      response.req.cookies as Record<string, string> | undefined
-    )?.[COOKIE_PENDING_GOOGLE_LINK];
-
-    if (!token) {
-      throw new BadRequestException(
-        'No pending link found. Please start the linking process again.',
-      );
-    }
-
-    const payload = this.verifyPendingToken<GoogleStrategyProfile>(
-      token,
-      COOKIE_PENDING_GOOGLE_LINK,
-    );
+  async googleLinkAccount(request: Request, response: Response): Promise<AuthResponseDto> {
+    const payload = this.pendingGoogleService.getLinkCookie(request);
 
     if (!payload) {
-      throw new BadRequestException(
-        'Invalid or expired pending link. Please start the linking process again.',
-      );
+      throw new BadRequestException('Invalid or expired pending link.');
     }
 
-    response.clearCookie(COOKIE_PENDING_GOOGLE_LINK, { path: '/' });
+    this.pendingGoogleService.clearLinkCookie(response);
 
-    const existingUser = await this.authRepository.findUserByEmail(
-      payload.email,
-    );
+    const user = await this.userRepository.findByEmail(payload.email);
 
-    if (!existingUser || existingUser.googleId) {
-      throw new BadRequestException(
-        'Account cannot be linked. Please try again.',
-      );
+    if (!user || user.googleId) {
+      throw new BadRequestException('Account cannot be linked.');
     }
 
-    const user = await this.authRepository.updateUserWithGoogleId(
-      existingUser.id,
-      payload.googleId,
-      payload.avatarUrl,
-    );
-
-    await this.emailVerificationRepository.deleteTokensByUserId(user.id);
-
-    return this.setAuthCookiesAndReturnUser(user, response);
-  }
-
-  async refreshAccessToken(
-    refreshToken: string,
-    response: Response,
-  ): Promise<AuthResponseDto> {
-    const storedToken =
-      await this.refreshTokenRepository.findByToken(refreshToken);
-
-    if (!storedToken) {
-      throw new UnauthorizedException('Invalid refresh token.');
-    }
-
-    if (storedToken.expiresAt < new Date()) {
-      await this.refreshTokenRepository.deleteByToken(refreshToken);
-      throw new UnauthorizedException('Refresh token expired.');
-    }
-
-    const payload = {
-      sub: storedToken.userId,
-      email: storedToken.user.email,
-    };
-
-    const accessToken = this.jwtService.sign(payload);
-
-    const cookieOptions = this.getCookieOptions();
-    response.cookie(COOKIE_ACCESS_TOKEN, accessToken, {
-      ...cookieOptions,
-      maxAge: ACCESS_TOKEN_MAX_AGE_MS,
+    const updatedUser = await this.userRepository.update(user.id, {
+      googleId: payload.googleId,
+      avatarUrl: payload.avatarUrl,
     });
 
-    return plainToInstance(
-      AuthResponseDto,
-      { user: storedToken.user },
-      CLASS_TRANSFORMER_OPTIONS,
-    );
+    await this.emailVerificationTokenRepository.deleteTokensByUserId(updatedUser.id);
+
+    return this.authenticateUserAndCreateSession(response, updatedUser);
   }
 
-  async signOut(refreshToken: string): Promise<void> {
-    await this.refreshTokenRepository.deleteByToken(refreshToken);
-  }
+  async refreshAccessToken(request: Request, response: Response): Promise<AuthResponseDto> {
+    const refreshToken = getRefreshTokenFromCookie(request);
 
-  async signOutAll(userId: number): Promise<void> {
-    await this.refreshTokenRepository.deleteByUserId(userId);
-  }
-
-  private createPendingToken(
-    profile: GoogleStrategyProfile,
-    purpose: string,
-  ): string {
-    return this.jwtService.sign(
-      { ...profile, purpose },
-      { expiresIn: PENDING_JWT_EXPIRES_IN },
-    );
-  }
-
-  private verifyPendingToken<T extends GoogleStrategyProfile>(
-    token: string,
-    purpose: string,
-  ): T | null {
-    try {
-      const decoded = this.jwtService.verify<T & { purpose: string }>(token);
-
-      if (decoded.purpose !== purpose) {
-        return null;
-      }
-
-      return decoded as T;
-    } catch {
-      return null;
+    if (!refreshToken) {
+      clearAuthCookies(response);
+      throw new UnauthorizedException('No refresh token.');
     }
-  }
 
-  private async setAuthCookiesAndReturnUser(
-    user: UserEntity,
-    response: Response,
-  ): Promise<AuthResponseDto> {
-    const payload = { sub: user.id, email: user.email };
-    const accessToken = this.jwtService.sign(payload);
+    const storedRefreshToken = await this.refreshAccessTokenRepository.findByToken(refreshToken);
 
-    const refreshToken = randomBytes(64).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
-
-    await this.refreshTokenRepository.createRefreshToken(
-      user.id,
-      refreshToken,
-      expiresAt,
-    );
-
-    const cookieOptions = this.getCookieOptions();
-
-    response.cookie(COOKIE_ACCESS_TOKEN, accessToken, {
-      ...cookieOptions,
-      maxAge: ACCESS_TOKEN_MAX_AGE_MS,
+    assertTokenExists(storedRefreshToken, 'Invalid refresh token.');
+    assertTokenNotExpired(storedRefreshToken, 'Refresh token expired.', async () => {
+      await this.refreshAccessTokenRepository.deleteByToken(refreshToken);
     });
 
-    response.cookie(COOKIE_REFRESH_TOKEN, refreshToken, {
-      ...cookieOptions,
-      maxAge: REFRESH_TOKEN_MAX_AGE_MS,
+    const accessToken = this.jwtService.sign({
+      sub: storedRefreshToken.userId,
+      email: storedRefreshToken.user.email,
     });
 
-    return plainToInstance(
-      AuthResponseDto,
-      { user },
-      CLASS_TRANSFORMER_OPTIONS,
-    );
+    setAccessTokenCookie(response, accessToken, this.configService);
+
+    return plainToInstance(AuthResponseDto, { user: storedRefreshToken.user }, CLASS_TRANSFORMER_OPTIONS);
   }
 
-  async createAndSendVerificationToken(user: UserEntity): Promise<void> {
-    await this.emailVerificationRepository.deleteTokensByUserId(user.id);
+  async signOut(request: Request, response: Response): Promise<void> {
+    const refreshToken = getRefreshTokenFromCookie(request);
 
-    const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + EMAIL_VERIFICATION_EXPIRES_HOURS);
+    if (refreshToken) {
+      await this.refreshAccessTokenRepository.deleteByToken(refreshToken);
+    }
 
-    await this.emailVerificationRepository.createToken(
-      user.id,
-      token,
-      expiresAt,
-    );
+    clearAuthCookies(response);
+  }
 
+  async signOutAll(userId: number, response: Response): Promise<void> {
+    await this.refreshAccessTokenRepository.deleteByUserId(userId);
+
+    clearAuthCookies(response);
+  }
+
+  async createTokenAndSendVerificationEmail(user: UserEntity): Promise<void> {
+    const token = generateHexToken(32);
+    const userId = user.id;
+
+    await this.emailVerificationTokenRepository.deleteTokensByUserId(userId);
+    await this.emailVerificationTokenRepository.createToken(userId, token, generateExpirationInHours(1));
     await this.emailService.sendVerificationEmail(user.email, user.name, token);
   }
 
   async verifyEmail(token: string): Promise<void> {
-    const verificationToken =
-      await this.emailVerificationRepository.findByToken(token);
+    const emailVerificationToken = await this.emailVerificationTokenRepository.findByToken(token);
 
-    if (!verificationToken) {
-      throw new BadRequestException('Invalid verification token.');
-    }
+    assertTokenExists(emailVerificationToken, 'Invalid email verification token.');
+    assertTokenNotExpired(emailVerificationToken, 'Email verification token expired.');
 
-    if (verificationToken.used) {
-      throw new BadRequestException('Verification token already used.');
-    }
-
-    if (verificationToken.expiresAt < new Date()) {
-      throw new BadRequestException('Verification token expired.');
-    }
-
-    await this.emailVerificationRepository.markAsUsed(verificationToken.id);
-    await this.authRepository.markEmailAsVerified(verificationToken.userId);
+    await this.emailVerificationTokenRepository.deleteByToken(emailVerificationToken.token);
+    await this.userRepository.update(emailVerificationToken.userId, { emailVerified: true });
   }
 
   async resendVerificationEmail(email: string): Promise<void> {
-    const user = await this.authRepository.findUserByEmail(email);
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
       throw new BadRequestException('User not found.');
@@ -552,49 +299,34 @@ export class AuthService {
       throw new BadRequestException('Google accounts are verified by default.');
     }
 
-    await this.createAndSendVerificationToken(user);
+    await this.createTokenAndSendVerificationEmail(user);
   }
 
   async forgotPassword(email: string): Promise<void> {
-    const user = await this.authRepository.findUserByEmail(email);
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user || !user.passwordHash) {
       return;
     }
-    await this.passwordResetRepository.deleteTokensByUserId(user.id);
 
-    const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + PASSWORD_RESET_EXPIRES_HOURS);
+    const token = generateHexToken(32);
+    const userId = user.id;
 
-    await this.passwordResetRepository.createToken(user.id, token, expiresAt);
-
-    await this.emailService.sendPasswordResetEmail(
-      user.email,
-      user.name,
-      token,
-    );
+    await this.passwordResetTokenRepository.deleteTokensByUserId(userId);
+    await this.passwordResetTokenRepository.createToken(userId, token, generateExpirationInHours(1));
+    await this.emailService.sendPasswordResetEmail(user.email, user.name, token);
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    const resetToken = await this.passwordResetRepository.findByToken(token);
+    const passwordResetToken = await this.passwordResetTokenRepository.findByToken(token);
 
-    if (!resetToken) {
-      throw new BadRequestException('Invalid reset token.');
-    }
+    assertTokenExists(passwordResetToken, 'Invalid password reset token.');
+    assertTokenNotExpired(passwordResetToken, 'Password reset token expired.');
 
-    if (resetToken.used) {
-      throw new BadRequestException('Reset token already used.');
-    }
+    const userId = passwordResetToken.userId;
 
-    if (resetToken.expiresAt < new Date()) {
-      throw new BadRequestException('Reset token expired.');
-    }
-
-    const passwordHash = await hashPassword(newPassword);
-
-    await this.authRepository.updatePassword(resetToken.userId, passwordHash);
-    await this.passwordResetRepository.markAsUsed(resetToken.id);
-    await this.refreshTokenRepository.deleteByUserId(resetToken.userId);
+    await this.userRepository.update(userId, { password: newPassword });
+    await this.passwordResetTokenRepository.deleteByToken(passwordResetToken.token);
+    await this.refreshAccessTokenRepository.deleteByUserId(userId);
   }
 }

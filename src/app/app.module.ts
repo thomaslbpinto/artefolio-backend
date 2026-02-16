@@ -10,8 +10,8 @@ import { TokenEntity } from '../core/entities/token.entity';
 import { UserModule } from '../apis/user/user.module';
 import { AuthModule } from '../apis/auth/auth.module';
 import { JwtAuthGuard } from '../core/guards/jwt-auth.guard';
-import * as fs from 'fs';
-import * as path from 'path';
+import fs from 'fs';
+import path from 'path';
 
 @Module({
   imports: [
@@ -35,13 +35,7 @@ import * as path from 'path';
           url: config.get<string>('DB_URL'),
           ssl: sslConfig,
           synchronize: false,
-          entities: [
-            ArtworkEntity,
-            CollectionEntity,
-            ImageEntity,
-            UserEntity,
-            TokenEntity,
-          ],
+          entities: [ArtworkEntity, CollectionEntity, ImageEntity, UserEntity, TokenEntity],
           autoLoadEntities: true,
         };
       },

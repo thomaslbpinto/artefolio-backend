@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsOptional,
@@ -31,6 +32,10 @@ export class CreateUserDto {
   @IsNotEmpty()
   @MaxLength(255)
   email: string;
+
+  @IsOptional()
+  @IsBoolean()
+  emailVerified?: boolean = false;
 
   @IsOptional()
   @IsStrongPassword({

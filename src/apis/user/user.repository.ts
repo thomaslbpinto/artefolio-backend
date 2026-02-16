@@ -1,8 +1,4 @@
-import {
-  NotFoundException,
-  ConflictException,
-  Injectable,
-} from '@nestjs/common';
+import { NotFoundException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { CreateUserDto } from 'src/core/dtos/create-user.dto';
@@ -21,7 +17,6 @@ export class UserRepository {
   ) {}
 
   async create(dto: CreateUserDto): Promise<UserResponseDto> {
-    // Check for existing email or username including soft-deleted users
     const existingUser = await this.userRepository.findOne({
       where: [{ email: dto.email }, { username: dto.username }],
       withDeleted: true,
@@ -29,12 +24,10 @@ export class UserRepository {
 
     if (existingUser) {
       if (existingUser.email === dto.email) {
-        throw new ConflictException(
-          'An account with this email already exists',
-        );
+        throw new ConflictException('An account with this email already exists.');
       }
 
-      throw new ConflictException('This username is already taken');
+      throw new ConflictException('This username is already taken.');
     }
 
     const { password, ...rest } = dto;
@@ -42,17 +35,14 @@ export class UserRepository {
     const userData: Partial<UserEntity> = {
       ...rest,
       ...(password ? { passwordHash: await hashPassword(password) } : {}),
+      ...(dto.googleId ? { emailVerified: true } : {}),
     };
 
     const user = this.userRepository.create(userData);
 
     const savedUser = await this.userRepository.save(user);
 
-    return plainToInstance(
-      UserResponseDto,
-      savedUser,
-      CLASS_TRANSFORMER_OPTIONS,
-    );
+    return plainToInstance(UserResponseDto, savedUser, CLASS_TRANSFORMER_OPTIONS);
   }
 
   async findOne(id: number): Promise<UserResponseDto> {
@@ -61,10 +51,32 @@ export class UserRepository {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('User not found.');
     }
 
     return plainToInstance(UserResponseDto, user, CLASS_TRANSFORMER_OPTIONS);
+  }
+
+  async findByEmail(email: string): Promise<UserEntity | null> {
+    return await this.userRepository.findOneBy({ email });
+  }
+
+  async findByGoogleId(googleId: string): Promise<UserEntity | null> {
+    return await this.userRepository.findOneBy({ googleId });
+  }
+
+  async findByEmailWithDeleted(email: string): Promise<UserEntity | null> {
+    return await this.userRepository.findOne({
+      where: { email },
+      withDeleted: true,
+    });
+  }
+
+  async findByUsernameWithDeleted(username: string): Promise<UserEntity | null> {
+    return await this.userRepository.findOne({
+      where: { username },
+      withDeleted: true,
+    });
   }
 
   async findAll(): Promise<UserResponseDto[]> {
@@ -83,6 +95,7 @@ export class UserRepository {
     const updateData: Partial<UserEntity> = {
       ...rest,
       ...(password ? { passwordHash: await hashPassword(password) } : {}),
+      ...(dto.googleId ? { emailVerified: true } : {}),
     };
 
     await this.userRepository.update(id, updateData);

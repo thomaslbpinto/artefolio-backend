@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Req,
-  Res,
-  UnauthorizedException,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { SignInDto } from 'src/core/dtos/auth/sign-in.dto';
@@ -22,15 +13,12 @@ import { GoogleProfileDto } from 'src/core/dtos/auth/google-profile.dto';
 import { Public } from 'src/core/decorators/public.decorator';
 import { CurrentUser } from 'src/core/decorators/current-user.decorator';
 import { UserResponseDto } from 'src/core/dtos/user.response.dto';
-import {
-  COOKIE_ACCESS_TOKEN,
-  COOKIE_REFRESH_TOKEN,
-} from 'src/core/constants/cookie.constants';
 import { CLASS_TRANSFORMER_OPTIONS } from 'src/core/configs/class-transformer.config';
 import { plainToInstance } from 'class-transformer';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { GoogleStrategyProfile } from 'src/core/strategies/google.strategy';
 import type { Request, Response } from 'express';
+import { PendingGoogleService } from './services/pending-google.service';
 
 interface RequestWithGoogleUser extends Request {
   user: GoogleStrategyProfile;
@@ -38,7 +26,10 @@ interface RequestWithGoogleUser extends Request {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly pendingGoogleService: PendingGoogleService,
+  ) {}
 
   @Public()
   @Get('google')
@@ -57,75 +48,68 @@ export class AuthController {
 
   @Public()
   @Get('google/pending-signup')
-  async getPendingSignup(
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<{ profile: GoogleProfileDto | null }> {
-    const profile = await this.authService.getPendingSignup(response);
-
-    return { profile: profile ?? null };
+  getGooglePendingSignupProfile(@Req() request: Request): GoogleProfileDto | null {
+    return this.pendingGoogleService.getSignUpCookie(request);
   }
 
   @Public()
   @Get('google/clear-pending-signup')
-  clearPendingSignup(@Res({ passthrough: true }) response: Response): {
-    ok: true;
-  } {
-    this.authService.clearPendingSignupCookie(response);
-    return { ok: true };
-  }
-
-  @Public()
-  @Get('google/clear-pending-link')
-  clearPendingLink(@Res({ passthrough: true }) response: Response): {
-    ok: true;
-  } {
-    this.authService.clearPendingLinkCookie(response);
-    return { ok: true };
+  clearGooglePendingSignupProfile(@Res({ passthrough: true }) response: Response): void {
+    this.pendingGoogleService.clearSignUpCookie(response);
   }
 
   @Public()
   @Get('google/pending-link')
-  async getPendingLink(
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<{ profile: GoogleProfileDto | null }> {
-    const profile = await this.authService.getPendingLink(response);
-
-    return { profile: profile ?? null };
+  getPendingGoogleLinkCookie(@Req() request: Request): GoogleProfileDto | null {
+    return this.pendingGoogleService.getLinkCookie(request);
   }
 
   @Public()
-  @Post('sign-in')
-  async signIn(
-    @Body() dto: SignInDto,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<AuthResponseDto> {
-    return await this.authService.signIn(dto, response);
-  }
-
-  @Public()
-  @Post('sign-up')
-  async signUp(
-    @Body() dto: SignUpDto,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<AuthResponseDto> {
-    return await this.authService.signUp(dto, response);
+  @Get('google/clear-pending-link')
+  clearGooglePendingLinkProfile(@Res({ passthrough: true }) response: Response): void {
+    this.pendingGoogleService.clearLinkCookie(response);
   }
 
   @Public()
   @Post('google/sign-up/complete')
   async googleSignUpComplete(
     @Body() dto: GoogleSignUpCompleteDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponseDto> {
-    return await this.authService.completeGoogleSignUp(dto, response);
+    return await this.authService.completeGoogleSignUp(dto, request, response);
   }
 
   @Public()
   @Post('google/link-account')
-  async linkGoogleAccount(
+  async googleLinkAccount(
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponseDto> {
-    return await this.authService.linkGoogleAccount(response);
+    return await this.authService.googleLinkAccount(request, response);
+  }
+
+  @Public()
+  @Post('sign-in')
+  async signIn(@Body() dto: SignInDto, @Res({ passthrough: true }) response: Response): Promise<AuthResponseDto> {
+    return await this.authService.signIn(dto, response);
+  }
+
+  @Public()
+  @Post('sign-up')
+  async signUp(@Body() dto: SignUpDto, @Res({ passthrough: true }) response: Response): Promise<AuthResponseDto> {
+    return await this.authService.signUp(dto, response);
+  }
+
+  @Public()
+  @Post('sign-out')
+  async signOut(@Req() request: Request, @Res({ passthrough: true }) response: Response): Promise<void> {
+    await this.authService.signOut(request, response);
+  }
+
+  @Post('sign-out-all')
+  async signOutAll(@CurrentUser() user: UserEntity, @Res({ passthrough: true }) response: Response): Promise<void> {
+    await this.authService.signOutAll(user.id, response);
   }
 
   @Get('me')
@@ -134,88 +118,35 @@ export class AuthController {
   }
 
   @Public()
-  @Post('refresh')
-  async refresh(
+  @Post('refresh-access-token')
+  async refreshAccessToken(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponseDto> {
-    const refreshToken = request.cookies?.[COOKIE_REFRESH_TOKEN] as
-      | string
-      | undefined;
-
-    if (!refreshToken) {
-      response.clearCookie(COOKIE_ACCESS_TOKEN, { path: '/' });
-      response.clearCookie(COOKIE_REFRESH_TOKEN, { path: '/' });
-      throw new UnauthorizedException('No refresh token');
-    }
-
-    return await this.authService.refreshAccessToken(refreshToken, response);
+    return await this.authService.refreshAccessToken(request, response);
   }
 
   @Public()
   @Post('verify-email')
-  async verifyEmail(@Body() dto: VerifyEmailDto): Promise<{ message: string }> {
+  async verifyEmail(@Body() dto: VerifyEmailDto): Promise<void> {
     await this.authService.verifyEmail(dto.token);
-    return { message: 'Email verified successfully' };
   }
 
   @Public()
   @Post('resend-verification-email')
-  async resendVerificationEmail(
-    @Body() dto: ResendVerificationEmailDto,
-  ): Promise<{ message: string }> {
+  async resendVerificationEmail(@Body() dto: ResendVerificationEmailDto): Promise<void> {
     await this.authService.resendVerificationEmail(dto.email);
-    return { message: 'Verification email sent' };
-  }
-
-  @Public()
-  @Post('sign-out')
-  async signOut(
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<{ message: string }> {
-    const refreshToken = request.cookies?.[COOKIE_REFRESH_TOKEN] as
-      | string
-      | undefined;
-
-    if (refreshToken) {
-      await this.authService.signOut(refreshToken);
-    }
-
-    response.clearCookie(COOKIE_ACCESS_TOKEN, { path: '/' });
-    response.clearCookie(COOKIE_REFRESH_TOKEN, { path: '/' });
-
-    return { message: 'Signed out successfully' };
-  }
-
-  @Post('sign-out-all')
-  async signOutAll(
-    @CurrentUser() user: UserEntity,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<{ message: string }> {
-    await this.authService.signOutAll(user.id);
-
-    response.clearCookie(COOKIE_ACCESS_TOKEN, { path: '/' });
-    response.clearCookie(COOKIE_REFRESH_TOKEN, { path: '/' });
-
-    return { message: 'Logged out from all devices successfully' };
   }
 
   @Public()
   @Post('forgot-password')
-  async forgotPassword(
-    @Body() dto: ForgotPasswordDto,
-  ): Promise<{ message: string }> {
+  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<void> {
     await this.authService.forgotPassword(dto.email);
-    return { message: 'If the email exists, a reset link has been sent' };
   }
 
   @Public()
   @Post('reset-password')
-  async resetPassword(
-    @Body() dto: ResetPasswordDto,
-  ): Promise<{ message: string }> {
+  async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
     await this.authService.resetPassword(dto.token, dto.password);
-    return { message: 'Password reset successfully' };
   }
 }
