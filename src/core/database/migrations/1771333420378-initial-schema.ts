@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class InitialSchema1770770841886 implements MigrationInterface {
-  name = 'InitialSchema1770770841886';
+export class InitialSchema1771333420378 implements MigrationInterface {
+  name = 'InitialSchema1771333420378';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -25,7 +25,7 @@ export class InitialSchema1770770841886 implements MigrationInterface {
       `CREATE TYPE "public"."token_type_enum" AS ENUM('refresh_access', 'email_verification', 'password_forgot')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "token" ("id" SERIAL NOT NULL, "user_id" integer NOT NULL, "token" character varying(500) NOT NULL, "type" "public"."token_type_enum" NOT NULL, "used" boolean NOT NULL DEFAULT false, "expires_at" TIMESTAMP WITH TIME ZONE NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_82fae97f905930df5d62a702fc9" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "token" ("id" SERIAL NOT NULL, "user_id" integer NOT NULL, "token" character varying(500) NOT NULL, "type" "public"."token_type_enum" NOT NULL, "expires_at" TIMESTAMP WITH TIME ZONE NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_82fae97f905930df5d62a702fc9" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(`CREATE UNIQUE INDEX "IDX_f14413cd0a96dd8343ddc1a0cf" ON "token" ("type", "token") `);
     await queryRunner.query(

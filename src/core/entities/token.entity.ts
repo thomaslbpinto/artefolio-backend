@@ -21,9 +21,6 @@ export class TokenEntity {
   @Column({ type: 'enum', enum: TokenType })
   type: TokenType;
 
-  @Column({ type: 'boolean', default: false })
-  used: boolean;
-
   @Column({ name: 'expires_at', type: 'timestamp with time zone' })
   expiresAt: Date;
 
