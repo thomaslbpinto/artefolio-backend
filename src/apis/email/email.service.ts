@@ -14,42 +14,38 @@ export class EmailService {
     this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY'));
   }
 
-  async sendVerificationEmail(email: string, name: string, token: string): Promise<void> {
+  async sendEmailVerificationEmail(email: string, name: string, code: string): Promise<void> {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3001';
-
-    const verificationUrl = `${frontendUrl}/verify-email?token=${token}`;
     const logoUrl = `${frontendUrl}/assets/logo-light.png`;
 
     const html = await this.templateService.render('verification-email', {
       name,
-      verificationUrl,
+      code,
       logoUrl,
     });
 
     await this.resend.emails.send({
       from: `artefolio <${this.configService.get<string>('EMAIL_FROM')}>`,
       to: email,
-      subject: 'Verify your email',
+      subject: 'Verification email code',
       html,
     });
   }
 
-  async sendPasswordResetEmail(email: string, name: string, token: string): Promise<void> {
+  async sendPasswordResetEmail(email: string, name: string, code: string): Promise<void> {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3001';
-
-    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
     const logoUrl = `${frontendUrl}/assets/logo-light.png`;
 
     const html = await this.templateService.render('password-reset', {
       name,
-      resetUrl,
+      code,
       logoUrl,
     });
 
     await this.resend.emails.send({
       from: `artefolio <${this.configService.get<string>('EMAIL_FROM')}>`,
       to: email,
-      subject: 'Reset your password',
+      subject: 'Password reset code',
       html: html,
     });
   }

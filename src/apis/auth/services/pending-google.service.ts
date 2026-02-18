@@ -1,5 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
-import { GoogleProfileDto } from 'src/core/dtos/auth/google-profile.dto';
+import { GoogleProfileDto } from 'src/core/dtos/auth/google/google-profile.dto';
 import { clearCookie, getCookie, getCookieOptions, setCookie } from 'src/core/utils/cookie.util';
 import {
   COOKIE_PENDING_GOOGLE_LINK,

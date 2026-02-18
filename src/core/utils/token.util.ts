@@ -24,15 +24,3 @@ export function assertTokenNotExpired(token: TokenBase, message: string, onExpir
 export function generateHexToken(bytes: number): string {
   return randomBytes(bytes).toString('hex');
 }
-
-export function generateExpirationInDays(days: number): Date {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date;
-}
-
-export function generateExpirationInHours(hours: number): Date {
-  const date = new Date();
-  date.setHours(date.getHours() + hours);
-  return date;
-}

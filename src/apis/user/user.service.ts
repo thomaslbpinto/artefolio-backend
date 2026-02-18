@@ -10,15 +10,11 @@ export class UserService {
 
   async create(dto: CreateUserDto): Promise<UserResponseDto> {
     if (!dto.password && !dto.googleId) {
-      throw new BadRequestException(
-        'Either password or googleId id is required.',
-      );
+      throw new BadRequestException('Either password or googleId id is required.');
     }
 
     if (dto.password && dto.googleId) {
-      throw new BadRequestException(
-        'Only one of password or googleId should be provided.',
-      );
+      throw new BadRequestException('Only one of password or googleId should be provided.');
     }
 
     return await this.userRepository.create(dto);

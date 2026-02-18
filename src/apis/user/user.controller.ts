@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
 import { UserResponseDto } from 'src/core/dtos/user.response.dto';
 import { UserService } from './user.service';
 import { CreateUserDto } from 'src/core/dtos/create-user.dto';
@@ -23,9 +14,7 @@ export class UserController {
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<UserResponseDto> {
+  async findOne(@Param('id', ParseIntPipe) id: number): Promise<UserResponseDto> {
     return await this.userService.findOne(id);
   }
 
@@ -35,17 +24,12 @@ export class UserController {
   }
 
   @Patch(':id')
-  async update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateUserDto,
-  ): Promise<UserResponseDto> {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto): Promise<UserResponseDto> {
     return await this.userService.update(id, dto);
   }
 
   @Delete(':id')
-  async remove(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<UserResponseDto> {
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<UserResponseDto> {
     return await this.userService.remove(id);
   }
 }

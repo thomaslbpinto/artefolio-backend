@@ -1,33 +1,35 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class InitialSchema1771333420378 implements MigrationInterface {
-  name = 'InitialSchema1771333420378';
+export class InitialSchema1771369281520 implements MigrationInterface {
+  name = 'InitialSchema1771369281520';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TABLE "collection" ("id" SERIAL NOT NULL, "name" character varying NOT NULL, "description" character varying(255), "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_ad3f485bbc99d875491f44d7c85" PRIMARY KEY ("id"))`,
     );
-    await queryRunner.query(`CREATE TYPE "public"."image_provider_enum" AS ENUM('S3', 'CLOUDFLARE')`);
+    await queryRunner.query(`CREATE TYPE "public"."image_provider_enum" AS ENUM('s3', 'cloudflare')`);
     await queryRunner.query(
       `CREATE TABLE "image" ("id" SERIAL NOT NULL, "key" character varying NOT NULL, "provider" "public"."image_provider_enum" NOT NULL, "mime_type" character varying NOT NULL, "size" bigint NOT NULL, "width" integer NOT NULL, "height" integer NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP WITH TIME ZONE, "artwork_id" integer, CONSTRAINT "PK_d6db1ab4ee9ad9dbe86c64e4cc3" PRIMARY KEY ("id"))`,
     );
-    await queryRunner.query(`CREATE TYPE "public"."artwork_type_enum" AS ENUM('DIGITAL', 'PHYSICAL')`);
+    await queryRunner.query(`CREATE TYPE "public"."artwork_type_enum" AS ENUM('digital', 'physical')`);
     await queryRunner.query(`CREATE TYPE "public"."artwork_technique_enum" AS ENUM()`);
     await queryRunner.query(`CREATE TYPE "public"."artwork_genre_enum" AS ENUM()`);
-    await queryRunner.query(`CREATE TYPE "public"."artwork_visibility_enum" AS ENUM('PUBLIC', 'PRIVATE')`);
+    await queryRunner.query(`CREATE TYPE "public"."artwork_visibility_enum" AS ENUM('public', 'private')`);
     await queryRunner.query(
-      `CREATE TABLE "artwork" ("id" SERIAL NOT NULL, "type" "public"."artwork_type_enum" NOT NULL, "title" character varying NOT NULL, "description" text, "year" integer, "country" character varying, "technique" "public"."artwork_technique_enum", "genre" "public"."artwork_genre_enum", "physical_height" numeric(10,2), "physical_width" numeric(10,2), "physical_depth" numeric(10,2), "digital_height" integer, "digital_width" integer, "file_size" bigint, "materials" text, "tools" text, "tags" text array, "visibility" "public"."artwork_visibility_enum" NOT NULL DEFAULT 'PUBLIC', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP WITH TIME ZONE, "collection_id" integer, "user_id" integer NOT NULL, CONSTRAINT "PK_ee2e7c5ad7226179d4113a96fa8" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "artwork" ("id" SERIAL NOT NULL, "type" "public"."artwork_type_enum" NOT NULL, "title" character varying NOT NULL, "description" text, "year" integer, "country" character varying, "technique" "public"."artwork_technique_enum", "genre" "public"."artwork_genre_enum", "physical_height" numeric(10,2), "physical_width" numeric(10,2), "physical_depth" numeric(10,2), "digital_height" integer, "digital_width" integer, "file_size" bigint, "materials" text, "tools" text, "tags" text array, "visibility" "public"."artwork_visibility_enum" NOT NULL DEFAULT 'public', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP WITH TIME ZONE, "collection_id" integer, "user_id" integer NOT NULL, CONSTRAINT "PK_ee2e7c5ad7226179d4113a96fa8" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "user" ("id" SERIAL NOT NULL, "name" character varying(100) NOT NULL, "username" character varying(50) NOT NULL, "email" character varying(255) NOT NULL, "email_verified" boolean NOT NULL DEFAULT false, "password_hash" character varying(255), "bio" character varying(255), "avatar_url" character varying(500), "google_id" character varying(255), "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP WITH TIME ZONE, CONSTRAINT "UQ_78a916df40e02a9deb1c4b75edb" UNIQUE ("username"), CONSTRAINT "UQ_e12875dfb3b1d92d7d7c5377e22" UNIQUE ("email"), CONSTRAINT "UQ_7adac5c0b28492eb292d4a93871" UNIQUE ("google_id"), CONSTRAINT "PK_cace4a159ff9f2512dd42373760" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TYPE "public"."token_type_enum" AS ENUM('refresh_access', 'email_verification', 'password_forgot')`,
+      `CREATE TYPE "public"."otp_code_purpose_enum" AS ENUM('email_verification', 'password_reset')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "token" ("id" SERIAL NOT NULL, "user_id" integer NOT NULL, "token" character varying(500) NOT NULL, "type" "public"."token_type_enum" NOT NULL, "expires_at" TIMESTAMP WITH TIME ZONE NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_82fae97f905930df5d62a702fc9" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "otp_code" ("id" SERIAL NOT NULL, "user_id" integer NOT NULL, "purpose" "public"."otp_code_purpose_enum" NOT NULL, "code_hash" character varying(500) NOT NULL, "expires_at" TIMESTAMP WITH TIME ZONE NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_4c085b1bb79803b8db84bb05105" UNIQUE ("code_hash"), CONSTRAINT "PK_c2c773c7da0f03da4a23c4066a7" PRIMARY KEY ("id"))`,
     );
-    await queryRunner.query(`CREATE UNIQUE INDEX "IDX_f14413cd0a96dd8343ddc1a0cf" ON "token" ("type", "token") `);
+    await queryRunner.query(
+      `CREATE TABLE "refresh_token" ("id" SERIAL NOT NULL, "user_id" integer NOT NULL, "token" character varying(500) NOT NULL, "expires_at" TIMESTAMP WITH TIME ZONE NOT NULL, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_c31d0a2f38e6e99110df62ab0af" UNIQUE ("token"), CONSTRAINT "PK_b575dd3c21fb0831013c909e7fe" PRIMARY KEY ("id"))`,
+    );
     await queryRunner.query(
       `ALTER TABLE "image" ADD CONSTRAINT "FK_9e65ff974b18a9a565e57b6dde1" FOREIGN KEY ("artwork_id") REFERENCES "artwork"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
@@ -38,18 +40,22 @@ export class InitialSchema1771333420378 implements MigrationInterface {
       `ALTER TABLE "artwork" ADD CONSTRAINT "FK_909d0cf9b5455a8ba1fe884de16" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "token" ADD CONSTRAINT "FK_e50ca89d635960fda2ffeb17639" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+      `ALTER TABLE "otp_code" ADD CONSTRAINT "FK_48f78465fa5f22ceaaa2175b168" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "refresh_token" ADD CONSTRAINT "FK_6bbe63d2fe75e7f0ba1710351d4" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "token" DROP CONSTRAINT "FK_e50ca89d635960fda2ffeb17639"`);
+    await queryRunner.query(`ALTER TABLE "refresh_token" DROP CONSTRAINT "FK_6bbe63d2fe75e7f0ba1710351d4"`);
+    await queryRunner.query(`ALTER TABLE "otp_code" DROP CONSTRAINT "FK_48f78465fa5f22ceaaa2175b168"`);
     await queryRunner.query(`ALTER TABLE "artwork" DROP CONSTRAINT "FK_909d0cf9b5455a8ba1fe884de16"`);
     await queryRunner.query(`ALTER TABLE "artwork" DROP CONSTRAINT "FK_26e2ffe6290fa176022a403d01b"`);
     await queryRunner.query(`ALTER TABLE "image" DROP CONSTRAINT "FK_9e65ff974b18a9a565e57b6dde1"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_f14413cd0a96dd8343ddc1a0cf"`);
-    await queryRunner.query(`DROP TABLE "token"`);
-    await queryRunner.query(`DROP TYPE "public"."token_type_enum"`);
+    await queryRunner.query(`DROP TABLE "refresh_token"`);
+    await queryRunner.query(`DROP TABLE "otp_code"`);
+    await queryRunner.query(`DROP TYPE "public"."otp_code_purpose_enum"`);
     await queryRunner.query(`DROP TABLE "user"`);
     await queryRunner.query(`DROP TABLE "artwork"`);
     await queryRunner.query(`DROP TYPE "public"."artwork_visibility_enum"`);
