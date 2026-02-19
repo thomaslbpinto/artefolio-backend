@@ -1,9 +1,8 @@
 import * as bcrypt from 'bcrypt';
-
-const SALT_ROUNDS: number = process.env.BCRYPT_SALT_ROUNDS ? parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) : 12;
+import { BCRYPT_SALT_ROUNDS } from './bcrypt.util';
 
 export async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, SALT_ROUNDS);
+  return await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 }
 
 export async function comparePassword(password: string, hash: string): Promise<boolean> {

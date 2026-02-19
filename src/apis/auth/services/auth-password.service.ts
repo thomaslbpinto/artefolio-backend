@@ -1,33 +1,32 @@
 import { Injectable, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
 import { UserRepository } from '../../user/user.repository';
-import { UserResponseDto } from 'src/core/dtos/user.response.dto';
+import { UserEntity } from 'src/core/entities/user.entity';
 import { EmailService } from '../../email/email.service';
-import { PasswordResetOtpCodeService } from '../../password-reset-otp-code/password-reset-otp-code.service';
+import { OtpCodeService } from '../../otp-code/otp-code.service';
 import { RefreshTokenRepository } from '../../refresh-token/refresh-token.repository';
 import { assertTokenExists, assertTokenNotExpired } from 'src/core/utils/token.util';
 import { compareOtpCode, generateOtpCode, hashOtpCode } from 'src/core/utils/otp-code.util';
-import { CLASS_TRANSFORMER_OPTIONS } from 'src/core/configs/class-transformer.config';
-import { OTP_CODE_RESEND_COOLDOWN_IN_SECONDS } from 'src/core/constants/otp-code.constant';
-import { ResendCooldownResetPasswordDto } from 'src/core/dtos/auth/password/resend-cooldown-reset-password.dto';
+import { OTP_CODE_LENGTH, OTP_CODE_RESEND_COOLDOWN_IN_SECONDS } from 'src/core/constants/otp-code.constant';
+import { OtpPurpose } from 'src/core/enums/otp-purpose.enum';
+import { ResendCooldownDto } from 'src/core/dtos/auth/resend-cooldown.dto';
 
 @Injectable()
 export class AuthPasswordService {
   constructor(
-    private readonly passwordResetOtpCodeService: PasswordResetOtpCodeService,
+    private readonly otpCodeService: OtpCodeService,
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly userRepository: UserRepository,
     private readonly emailService: EmailService,
   ) {}
 
-  async getResendCooldown(email: string): Promise<ResendCooldownResetPasswordDto> {
+  async getResendCooldown(email: string): Promise<ResendCooldownDto> {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user || !user.passwordHash) {
       return { retryAfterSeconds: 0 };
     }
 
-    const existing = await this.passwordResetOtpCodeService.findByUserId(user.id);
+    const existing = await this.otpCodeService.findByUserId(user.id, OtpPurpose.PASSWORD_RESET);
 
     if (!existing) {
       return { retryAfterSeconds: 0 };
@@ -42,12 +41,16 @@ export class AuthPasswordService {
   async sendPasswordResetEmail(email: string): Promise<void> {
     const user = await this.userRepository.findByEmail(email);
 
-    if (!user || !user.passwordHash) {
+    if (!user) {
       return;
     }
 
+    if (!user.passwordHash && user.googleId) {
+      throw new BadRequestException('This account was created using Google. Please sign in with Google instead.');
+    }
+
     const userId = user.id;
-    const existing = await this.passwordResetOtpCodeService.findByUserId(userId);
+    const existing = await this.otpCodeService.findByUserId(userId, OtpPurpose.PASSWORD_RESET);
 
     if (existing) {
       const secondsElapsed = (Date.now() - existing.createdAt.getTime()) / 1000;
@@ -61,15 +64,15 @@ export class AuthPasswordService {
       }
     }
 
-    const code = generateOtpCode(6);
+    const code = generateOtpCode(OTP_CODE_LENGTH);
     const codeHash = await hashOtpCode(code);
 
-    await this.passwordResetOtpCodeService.deleteByUserId(userId);
-    await this.passwordResetOtpCodeService.create(userId, codeHash);
+    await this.otpCodeService.deleteByUserId(userId, OtpPurpose.PASSWORD_RESET);
+    await this.otpCodeService.create(userId, codeHash, OtpPurpose.PASSWORD_RESET);
     await this.emailService.sendPasswordResetEmail(user.email, user.name, code);
   }
 
-  async verifyPasswordResetCode(email: string, code: string): Promise<UserResponseDto> {
+  async verifyPasswordResetCode(email: string, code: string): Promise<UserEntity> {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user || !user.passwordHash) {
@@ -77,25 +80,25 @@ export class AuthPasswordService {
     }
 
     const userId = user.id;
-    const passwordResetOtpCode = await this.passwordResetOtpCodeService.findByUserId(userId);
+    const passwordResetOtpCode = await this.otpCodeService.findByUserId(userId, OtpPurpose.PASSWORD_RESET);
 
     assertTokenExists(passwordResetOtpCode, 'Invalid password reset code.');
-    assertTokenNotExpired(passwordResetOtpCode, 'Password reset code expired.', async () => {
-      await this.passwordResetOtpCodeService.deleteByUserId(userId);
+    await assertTokenNotExpired(passwordResetOtpCode, 'Password reset code expired.', async () => {
+      await this.otpCodeService.deleteByUserId(userId, OtpPurpose.PASSWORD_RESET);
     });
 
     if (!(await compareOtpCode(code, passwordResetOtpCode.codeHash))) {
       throw new BadRequestException('Invalid password reset code.');
     }
 
-    return plainToInstance(UserResponseDto, user, CLASS_TRANSFORMER_OPTIONS);
+    return user;
   }
 
   async resetPassword(email: string, code: string, newPassword: string): Promise<void> {
     const user = await this.verifyPasswordResetCode(email, code);
     const userId = user.id;
 
-    await this.passwordResetOtpCodeService.deleteByUserId(userId);
+    await this.otpCodeService.deleteByUserId(userId, OtpPurpose.PASSWORD_RESET);
     await this.refreshTokenRepository.deleteByUserId(userId);
     await this.userRepository.update(userId, { password: newPassword });
   }

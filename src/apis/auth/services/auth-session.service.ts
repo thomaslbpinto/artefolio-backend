@@ -7,8 +7,7 @@ import { UserEntity } from 'src/core/entities/user.entity';
 import { UserResponseDto } from 'src/core/dtos/user.response.dto';
 import { AuthResponseDto } from 'src/core/dtos/auth/auth-response.dto';
 import { CLASS_TRANSFORMER_OPTIONS } from 'src/core/configs/class-transformer.config';
-import { generateHexToken } from 'src/core/utils/token.util';
-import { assertTokenExists, assertTokenNotExpired } from 'src/core/utils/token.util';
+import { generateHexToken, assertTokenExists, assertTokenNotExpired } from 'src/core/utils/token.util';
 import { generateExpirationInDays } from 'src/core/utils/expiration.util';
 import {
   clearAuthCookies,
@@ -17,6 +16,7 @@ import {
   setRefreshTokenCookie,
 } from 'src/core/helpers/auth-cookie.helper';
 import { RefreshTokenRepository } from '../../refresh-token/refresh-token.repository';
+import { REFRESH_TOKEN_EXPIRY_DAYS } from 'src/core/constants/cookie.constant';
 
 @Injectable()
 export class AuthSessionService {
@@ -34,7 +34,11 @@ export class AuthSessionService {
 
     const refreshToken = generateHexToken(64);
 
-    await this.refreshTokenRepository.create(user.id, refreshToken, generateExpirationInDays(30));
+    await this.refreshTokenRepository.create(
+      user.id,
+      refreshToken,
+      generateExpirationInDays(REFRESH_TOKEN_EXPIRY_DAYS),
+    );
 
     setAccessTokenCookie(response, accessToken, this.configService);
     setRefreshTokenCookie(response, refreshToken, this.configService);
@@ -53,7 +57,7 @@ export class AuthSessionService {
     const storedRefreshToken = await this.refreshTokenRepository.findByToken(refreshToken);
 
     assertTokenExists(storedRefreshToken, 'Invalid refresh token.');
-    assertTokenNotExpired(storedRefreshToken, 'Refresh token expired.', async () => {
+    await assertTokenNotExpired(storedRefreshToken, 'Refresh token expired.', async () => {
       await this.refreshTokenRepository.deleteByToken(refreshToken);
     });
 

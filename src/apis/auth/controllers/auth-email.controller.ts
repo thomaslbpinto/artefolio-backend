@@ -5,14 +5,14 @@ import { ResendEmailVerificationEmailDto } from 'src/core/dtos/auth/email/resend
 import { AuthEmailService } from '../services/auth-email.service';
 import { CurrentUser } from 'src/core/decorators/current-user.decorator';
 import { UserEntity } from 'src/core/entities/user.entity';
-import { ResendCooldownEmailDto } from 'src/core/dtos/auth/email/resend-cooldown-email.dto';
+import { ResendCooldownDto } from 'src/core/dtos/auth/resend-cooldown.dto';
 
 @Controller('auth/email')
 export class AuthEmailController {
   constructor(private readonly authEmailService: AuthEmailService) {}
 
   @Get('resend-cooldown')
-  async getEmailVerificationResendCooldown(@CurrentUser() user: UserEntity): Promise<ResendCooldownEmailDto> {
+  async getEmailVerificationResendCooldown(@CurrentUser() user: UserEntity): Promise<ResendCooldownDto> {
     return this.authEmailService.getResendCooldown(user.id);
   }
 

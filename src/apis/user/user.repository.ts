@@ -1,10 +1,7 @@
 import { NotFoundException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { plainToInstance } from 'class-transformer';
 import { CreateUserDto } from 'src/core/dtos/create-user.dto';
-import { UserResponseDto } from 'src/core/dtos/user.response.dto';
 import { UserEntity } from 'src/core/entities/user.entity';
-import { CLASS_TRANSFORMER_OPTIONS } from 'src/core/configs/class-transformer.config';
 import { Repository } from 'typeorm';
 import { UpdateUserDto } from 'src/core/dtos/update-user.dto';
 import { hashPassword } from 'src/core/utils/password.util';
@@ -16,7 +13,7 @@ export class UserRepository {
     private readonly userRepository: Repository<UserEntity>,
   ) {}
 
-  async create(dto: CreateUserDto): Promise<UserResponseDto> {
+  async create(dto: CreateUserDto): Promise<UserEntity> {
     const existingUser = await this.userRepository.findOne({
       where: [{ email: dto.email }, { username: dto.username }],
       withDeleted: true,
@@ -40,12 +37,10 @@ export class UserRepository {
 
     const user = this.userRepository.create(userData);
 
-    const savedUser = await this.userRepository.save(user);
-
-    return plainToInstance(UserResponseDto, savedUser, CLASS_TRANSFORMER_OPTIONS);
+    return await this.userRepository.save(user);
   }
 
-  async findOne(id: number): Promise<UserResponseDto> {
+  async findOne(id: number): Promise<UserEntity> {
     const user = await this.userRepository.findOne({
       where: { id },
     });
@@ -54,7 +49,7 @@ export class UserRepository {
       throw new NotFoundException('User not found.');
     }
 
-    return plainToInstance(UserResponseDto, user, CLASS_TRANSFORMER_OPTIONS);
+    return user;
   }
 
   async findByEmail(email: string): Promise<UserEntity | null> {
@@ -79,15 +74,13 @@ export class UserRepository {
     });
   }
 
-  async findAll(): Promise<UserResponseDto[]> {
-    const users = await this.userRepository.find({
+  async findAll(): Promise<UserEntity[]> {
+    return await this.userRepository.find({
       order: { createdAt: 'DESC' },
     });
-
-    return plainToInstance(UserResponseDto, users, CLASS_TRANSFORMER_OPTIONS);
   }
 
-  async update(id: number, dto: UpdateUserDto): Promise<UserResponseDto> {
+  async update(id: number, dto: UpdateUserDto): Promise<UserEntity> {
     await this.findOne(id);
 
     const { password, ...rest } = dto;
@@ -103,7 +96,7 @@ export class UserRepository {
     return await this.findOne(id);
   }
 
-  async remove(id: number): Promise<UserResponseDto> {
+  async remove(id: number): Promise<UserEntity> {
     const user = await this.findOne(id);
 
     await this.userRepository.softDelete(id);

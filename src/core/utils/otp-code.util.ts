@@ -1,7 +1,6 @@
 import { randomInt } from 'crypto';
 import * as bcrypt from 'bcrypt';
-
-const SALT_ROUNDS: number = process.env.BCRYPT_SALT_ROUNDS ? parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) : 12;
+import { BCRYPT_SALT_ROUNDS } from './bcrypt.util';
 
 export function generateOtpCode(length: number): string {
   const max = 10 ** length;
@@ -10,7 +9,7 @@ export function generateOtpCode(length: number): string {
 }
 
 export async function hashOtpCode(code: string): Promise<string> {
-  return await bcrypt.hash(code, SALT_ROUNDS);
+  return await bcrypt.hash(code, BCRYPT_SALT_ROUNDS);
 }
 
 export async function compareOtpCode(code: string, hash: string): Promise<boolean> {

@@ -4,7 +4,7 @@ import { Public } from 'src/core/decorators/public.decorator';
 import { VerifyPasswordResetCodeDto } from 'src/core/dtos/auth/password/verify-password-reset-code.dto';
 import { ResetPasswordDto } from 'src/core/dtos/auth/password/reset-password.dto';
 import { AuthPasswordService } from '../services/auth-password.service';
-import { ResendCooldownResetPasswordDto } from 'src/core/dtos/auth/password/resend-cooldown-reset-password.dto';
+import { ResendCooldownDto } from 'src/core/dtos/auth/resend-cooldown.dto';
 
 @Controller('auth/password')
 export class AuthPasswordController {
@@ -12,7 +12,7 @@ export class AuthPasswordController {
 
   @Public()
   @Get('resend-cooldown')
-  async getPasswordResetResendCooldown(@Query('email') email: string): Promise<ResendCooldownResetPasswordDto> {
+  async getPasswordResetResendCooldown(@Query('email') email: string): Promise<ResendCooldownDto> {
     return this.authPasswordService.getResendCooldown(email);
   }
 

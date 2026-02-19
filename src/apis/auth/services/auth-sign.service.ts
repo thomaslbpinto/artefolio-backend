@@ -1,23 +1,23 @@
-import { Injectable, UnauthorizedException, ConflictException, InternalServerErrorException } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { ConflictException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { UserRepository } from '../../user/user.repository';
-import { EmailService } from '../../email/email.service';
 import { SignInDto } from 'src/core/dtos/auth/sign/sign-in.dto';
 import { SignUpDto } from 'src/core/dtos/auth/sign/sign-up.dto';
 import { AuthResponseDto } from 'src/core/dtos/auth/auth-response.dto';
-import { UserEntity } from 'src/core/entities/user.entity';
-import { OtpCodeEntity } from 'src/core/entities/otp-code.entity';
-import { OtpPurpose } from 'src/core/enums/otp-purpose.enum';
-import { hashPassword, comparePassword } from 'src/core/utils/password.util';
-import { generateOtpCode, hashOtpCode } from 'src/core/utils/otp-code.util';
+import { comparePassword, hashPassword } from 'src/core/utils/password.util';
 import { AuthSessionService } from './auth-session.service';
 import { PendingGoogleService } from './pending-google.service';
 import { clearAuthCookies, getRefreshTokenFromCookie } from 'src/core/helpers/auth-cookie.helper';
 import { RefreshTokenRepository } from 'src/apis/refresh-token/refresh-token.repository';
 import { Response, Request } from 'express';
-import { generateExpirationInMinutes } from 'src/core/utils/expiration.util';
-import { OTP_CODE_EXPIRATION_IN_MINUTES } from 'src/core/constants/otp-code.constant';
 import { AuthEmailService } from './auth-email.service';
+import { OTP_CODE_EXPIRATION_IN_MINUTES } from 'src/core/constants/otp-code.constant';
+import { OtpCodeEntity } from 'src/core/entities/otp-code.entity';
+import { UserEntity } from 'src/core/entities/user.entity';
+import { OtpPurpose } from 'src/core/enums/otp-purpose.enum';
+import { generateExpirationInMinutes } from 'src/core/utils/expiration.util';
+import { generateOtpCode, hashOtpCode } from 'src/core/utils/otp-code.util';
+import { DataSource } from 'typeorm';
+import { EmailService } from 'src/apis/email/email.service';
 
 @Injectable()
 export class AuthSignService {
@@ -27,7 +27,7 @@ export class AuthSignService {
     private readonly authSessionService: AuthSessionService,
     private readonly pendingGoogleService: PendingGoogleService,
     private readonly refreshTokenRepository: RefreshTokenRepository,
-    private readonly emailAuthService: AuthEmailService,
+    private readonly authEmailService: AuthEmailService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -45,7 +45,7 @@ export class AuthSignService {
     }
 
     if (!user.emailVerified && !user.googleId) {
-      await this.emailAuthService.sendEmailVerificationEmail(user);
+      await this.authEmailService.sendEmailVerificationEmail(user);
     }
 
     return this.authSessionService.createSession(response, user);

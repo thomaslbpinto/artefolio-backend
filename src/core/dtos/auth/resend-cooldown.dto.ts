@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsNumber } from 'class-validator';
 
-export class ResendCooldownEmailDto {
+export class ResendCooldownDto {
   @IsNumber()
   @IsNotEmpty()
   retryAfterSeconds: number;

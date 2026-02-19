@@ -9,9 +9,8 @@ import { UserEntity } from 'src/core/entities/user.entity';
 import { GoogleStrategy } from 'src/core/strategies/google.strategy';
 import { JwtStrategy } from 'src/core/strategies/jwt.strategy';
 import { EmailModule } from '../email/email.module';
-import { EmailVerificationOtpCodeService } from '../email-verification-otp-code/email-verifcation-otp-code.service';
 import { OtpCodeRepository } from '../otp-code/otp-code.repository';
-import { PasswordResetOtpCodeService } from '../password-reset-otp-code/password-reset-otp-code.service';
+import { OtpCodeService } from '../otp-code/otp-code.service';
 import { RefreshTokenRepository } from '../refresh-token/refresh-token.repository';
 import { AuthEmailController } from './controllers/auth-email.controller';
 import { AuthGoogleController } from './controllers/auth-google.controller';
@@ -25,6 +24,7 @@ import { AuthSignService } from './services/auth-sign.service';
 import { PendingGoogleService } from './services/pending-google.service';
 import { AuthSessionController } from './controllers/auth-session.controller';
 import { UserRepository } from '../user/user.repository';
+import { ACCESS_TOKEN_EXPIRY } from 'src/core/constants/cookie.constant';
 
 @Module({
   imports: [
@@ -35,7 +35,7 @@ import { UserRepository } from '../user/user.repository';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '15m' },
+        signOptions: { expiresIn: ACCESS_TOKEN_EXPIRY },
       }),
     }),
     EmailModule,
@@ -55,9 +55,8 @@ import { UserRepository } from '../user/user.repository';
     AuthSignService,
     PendingGoogleService,
     OtpCodeRepository,
+    OtpCodeService,
     RefreshTokenRepository,
-    EmailVerificationOtpCodeService,
-    PasswordResetOtpCodeService,
     UserRepository,
     GoogleStrategy,
     JwtStrategy,

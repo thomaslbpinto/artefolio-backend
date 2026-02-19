@@ -7,7 +7,8 @@ import { GoogleSignUpCompleteDto } from 'src/core/dtos/auth/google/google-sign-u
 import { AuthResponseDto } from 'src/core/dtos/auth/auth-response.dto';
 import { AuthSessionService } from './auth-session.service';
 import { PendingGoogleService } from './pending-google.service';
-import { EmailVerificationOtpCodeService } from '../../email-verification-otp-code/email-verifcation-otp-code.service';
+import { OtpCodeService } from '../../otp-code/otp-code.service';
+import { OtpPurpose } from 'src/core/enums/otp-purpose.enum';
 
 @Injectable()
 export class AuthGoogleService {
@@ -16,30 +17,28 @@ export class AuthGoogleService {
     private readonly userRepository: UserRepository,
     private readonly authSessionService: AuthSessionService,
     private readonly pendingGoogleService: PendingGoogleService,
-    private readonly emailVerificationOtpCodeService: EmailVerificationOtpCodeService,
+    private readonly otpCodeService: OtpCodeService,
   ) {}
 
-  async handleCallback(profile: GoogleProfileDto, response: Response): Promise<void> {
+  async handleCallback(profile: GoogleProfileDto, response: Response): Promise<string> {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3001';
 
     const user = await this.userRepository.findByGoogleId(profile.googleId);
 
     if (user) {
       await this.authSessionService.createSession(response, user);
-      response.redirect(frontendUrl);
-      return;
+      return frontendUrl;
     }
 
     if (await this.userRepository.findByEmail(profile.email)) {
       const linkToken = this.pendingGoogleService.createLinkToken(profile);
       this.pendingGoogleService.setLinkCookie(response, linkToken);
-      response.redirect(`${frontendUrl}/link-google-account`);
-      return;
+      return `${frontendUrl}/link-google-account`;
     }
 
     const signUpToken = this.pendingGoogleService.createSignUpToken(profile);
     this.pendingGoogleService.setSignUpCookie(response, signUpToken);
-    response.redirect(`${frontendUrl}/complete-google-sign-up`);
+    return `${frontendUrl}/complete-google-sign-up`;
   }
 
   async completeSignUp(dto: GoogleSignUpCompleteDto, request: Request, response: Response): Promise<AuthResponseDto> {
@@ -48,8 +47,6 @@ export class AuthGoogleService {
     if (!payload) {
       throw new BadRequestException('Invalid or expired pending signup.');
     }
-
-    this.pendingGoogleService.clearSignUpCookie(response);
 
     if (await this.userRepository.findByEmailWithDeleted(payload.email)) {
       throw new ConflictException('An account with this email already exists.');
@@ -68,6 +65,8 @@ export class AuthGoogleService {
       googleId: payload.googleId,
       avatarUrl: payload.avatarUrl,
     });
+
+    this.pendingGoogleService.clearSignUpCookie(response);
 
     return this.authSessionService.createSession(response, user);
   }
@@ -94,7 +93,7 @@ export class AuthGoogleService {
       avatarUrl: payload.avatarUrl,
     });
 
-    await this.emailVerificationOtpCodeService.deleteByUserId(userId);
+    await this.otpCodeService.deleteByUserId(userId, OtpPurpose.EMAIL_VERIFICATION);
 
     return this.authSessionService.createSession(response, updatedUser);
   }

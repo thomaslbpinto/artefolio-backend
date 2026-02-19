@@ -11,10 +11,14 @@ export function assertTokenExists<T extends TokenBase>(token: T | null, message:
   }
 }
 
-export function assertTokenNotExpired(token: TokenBase, message: string, onExpired?: () => void | Promise<void>): void {
+export async function assertTokenNotExpired(
+  token: TokenBase,
+  message: string,
+  onExpired?: () => void | Promise<void>,
+): Promise<void> {
   if (token.expiresAt < new Date()) {
     if (onExpired) {
-      void onExpired();
+      await onExpired();
     }
 
     throw new BadRequestException(message);

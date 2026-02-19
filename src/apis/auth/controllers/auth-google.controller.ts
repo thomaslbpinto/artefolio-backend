@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request, Response } from 'express';
 import { PendingGoogleService } from '../services/pending-google.service';
@@ -28,11 +28,9 @@ export class AuthGoogleController {
   @Public()
   @Get('callback')
   @UseGuards(AuthGuard('google'))
-  async googleCallback(
-    @Req() request: RequestWithGoogleUser,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<void> {
-    await this.authGoogleService.handleCallback(request.user, response);
+  async googleCallback(@Req() request: RequestWithGoogleUser, @Res() response: Response): Promise<void> {
+    const redirectTo = await this.authGoogleService.handleCallback(request.user, response);
+    response.redirect(redirectTo);
   }
 
   @Public()
@@ -42,7 +40,7 @@ export class AuthGoogleController {
   }
 
   @Public()
-  @Get('clear-pending-signup')
+  @Delete('clear-pending-signup')
   clearGooglePendingSignupProfile(@Res({ passthrough: true }) response: Response): void {
     this.pendingGoogleService.clearSignUpCookie(response);
   }
@@ -54,7 +52,7 @@ export class AuthGoogleController {
   }
 
   @Public()
-  @Get('clear-pending-link')
+  @Delete('clear-pending-link')
   clearGooglePendingLinkProfile(@Res({ passthrough: true }) response: Response): void {
     this.pendingGoogleService.clearLinkCookie(response);
   }

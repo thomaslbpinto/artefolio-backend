@@ -1,33 +1,34 @@
 import { Injectable, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { UserRepository } from '../../user/user.repository';
 import { EmailService } from '../../email/email.service';
-import { EmailVerificationOtpCodeService } from '../../email-verification-otp-code/email-verifcation-otp-code.service';
+import { OtpCodeService } from '../../otp-code/otp-code.service';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { assertTokenExists, assertTokenNotExpired } from 'src/core/utils/token.util';
 import { compareOtpCode, generateOtpCode, hashOtpCode } from 'src/core/utils/otp-code.util';
-import { OTP_CODE_RESEND_COOLDOWN_IN_SECONDS } from 'src/core/constants/otp-code.constant';
-import { ResendCooldownEmailDto } from 'src/core/dtos/auth/email/resend-cooldown-email.dto';
+import { OTP_CODE_LENGTH, OTP_CODE_RESEND_COOLDOWN_IN_SECONDS } from 'src/core/constants/otp-code.constant';
+import { OtpPurpose } from 'src/core/enums/otp-purpose.enum';
+import { ResendCooldownDto } from 'src/core/dtos/auth/resend-cooldown.dto';
 
 @Injectable()
 export class AuthEmailService {
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly emailVerificationOtpCodeService: EmailVerificationOtpCodeService,
+    private readonly otpCodeService: OtpCodeService,
     private readonly emailService: EmailService,
   ) {}
 
   async sendEmailVerificationEmail(user: UserEntity): Promise<void> {
     const userId = user.id;
-    const code = generateOtpCode(6);
+    const code = generateOtpCode(OTP_CODE_LENGTH);
     const codeHash = await hashOtpCode(code);
 
-    await this.emailVerificationOtpCodeService.deleteByUserId(userId);
-    await this.emailVerificationOtpCodeService.create(userId, codeHash);
+    await this.otpCodeService.deleteByUserId(userId, OtpPurpose.EMAIL_VERIFICATION);
+    await this.otpCodeService.create(userId, codeHash, OtpPurpose.EMAIL_VERIFICATION);
     await this.emailService.sendEmailVerificationEmail(user.email, user.name, code);
   }
 
-  async getResendCooldown(userId: number): Promise<ResendCooldownEmailDto> {
-    const existing = await this.emailVerificationOtpCodeService.findByUserId(userId);
+  async getResendCooldown(userId: number): Promise<ResendCooldownDto> {
+    const existing = await this.otpCodeService.findByUserId(userId, OtpPurpose.EMAIL_VERIFICATION);
 
     if (!existing) {
       return { retryAfterSeconds: 0 };
@@ -54,7 +55,7 @@ export class AuthEmailService {
       throw new BadRequestException('Google accounts are verified by default.');
     }
 
-    const existing = await this.emailVerificationOtpCodeService.findByUserId(user.id);
+    const existing = await this.otpCodeService.findByUserId(user.id, OtpPurpose.EMAIL_VERIFICATION);
 
     if (existing) {
       const secondsElapsed = (Date.now() - existing.createdAt.getTime()) / 1000;
@@ -78,18 +79,18 @@ export class AuthEmailService {
       return;
     }
 
-    const emailVerificationOtpCode = await this.emailVerificationOtpCodeService.findByUserId(userId);
+    const emailVerificationOtpCode = await this.otpCodeService.findByUserId(userId, OtpPurpose.EMAIL_VERIFICATION);
 
     assertTokenExists(emailVerificationOtpCode, 'Invalid email verification code.');
-    assertTokenNotExpired(emailVerificationOtpCode, 'Email verification code expired.', async () => {
-      await this.emailVerificationOtpCodeService.deleteByUserId(userId);
+    await assertTokenNotExpired(emailVerificationOtpCode, 'Email verification code expired.', async () => {
+      await this.otpCodeService.deleteByUserId(userId, OtpPurpose.EMAIL_VERIFICATION);
     });
 
     if (!(await compareOtpCode(code, emailVerificationOtpCode.codeHash))) {
       throw new BadRequestException('Invalid email verification code.');
     }
 
-    await this.emailVerificationOtpCodeService.deleteByUserId(userId);
+    await this.otpCodeService.deleteByUserId(userId, OtpPurpose.EMAIL_VERIFICATION);
     await this.userRepository.update(userId, { emailVerified: true });
   }
 }

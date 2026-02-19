@@ -4,6 +4,7 @@ import { clearCookie, getCookie, getCookieOptions, setCookie } from 'src/core/ut
 import {
   COOKIE_PENDING_GOOGLE_LINK,
   COOKIE_PENDING_GOOGLE_SIGNUP,
+  PENDING_GOOGLE_TOKEN_EXPIRY,
   PENDING_GOOGLE_TOKEN_MAX_AGE_MS,
 } from 'src/core/constants/cookie.constant';
 import { Response, Request } from 'express';
@@ -18,7 +19,7 @@ export type PendingToken = GoogleProfileDto & {
 
 @Injectable()
 export class PendingGoogleService {
-  private readonly expiresIn = '10m';
+  private readonly expiresIn = PENDING_GOOGLE_TOKEN_EXPIRY;
 
   constructor(
     private readonly jwtService: JwtService,

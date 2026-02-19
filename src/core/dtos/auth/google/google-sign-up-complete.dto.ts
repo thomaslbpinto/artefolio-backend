@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { USERNAME_REGEX, USERNAME_REGEX_MESSAGE } from 'src/core/utils/username.util';
 
 export class GoogleSignUpCompleteDto {
   @IsString()
@@ -11,9 +12,6 @@ export class GoogleSignUpCompleteDto {
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(50)
-  @Matches(/^(?!\.)(?!.*\.\.)([a-zA-Z0-9._]+)(?<!\.)$/, {
-    message:
-      'username can contain letters, numbers, underscores and dots, but cannot start or end with a dot or contain consecutive dots',
-  })
+  @Matches(USERNAME_REGEX, { message: USERNAME_REGEX_MESSAGE })
   username: string;
 }
