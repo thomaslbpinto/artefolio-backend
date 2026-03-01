@@ -5,6 +5,7 @@ import { ArtworkResponseDto } from 'src/core/dtos/artwork/artwork-response.dto';
 import { ArtworkRepository } from './artwork.repository';
 import { UpdateArtworkDto } from 'src/core/dtos/artwork/update-artwork.dto';
 import { CLASS_TRANSFORMER_OPTIONS } from 'src/core/configs/class-transformer.config';
+import { ArtworkPaginatedResponseDto } from 'src/core/dtos/artwork/artwork-paginated-response.dto';
 
 @Injectable()
 export class ArtworkService {
@@ -24,6 +25,23 @@ export class ArtworkService {
 
   async findAll(): Promise<ArtworkResponseDto[]> {
     return plainToInstance(ArtworkResponseDto, await this.artworkRepository.findAll(), CLASS_TRANSFORMER_OPTIONS);
+  }
+
+  async findAllPublicPaginated(page: number, limit: number): Promise<ArtworkPaginatedResponseDto> {
+    const [data, total] = await this.artworkRepository.findAllPublicPaginated(page, limit);
+
+    return plainToInstance(
+      ArtworkPaginatedResponseDto,
+      {
+        artworks: plainToInstance(ArtworkResponseDto, data, CLASS_TRANSFORMER_OPTIONS),
+        pagination: {
+          page,
+          limit,
+          total,
+        },
+      },
+      CLASS_TRANSFORMER_OPTIONS,
+    );
   }
 
   async update(id: number, dto: UpdateArtworkDto): Promise<ArtworkResponseDto> {

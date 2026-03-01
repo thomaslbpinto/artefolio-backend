@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import { UpdateArtworkDto } from 'src/core/dtos/artwork/update-artwork.dto';
 import { IMAGE_MAX_FILE_SIZE_BYTES } from 'src/core/constants/image.constant';
 import { ArtworkService } from './artwork.service';
 import { UserEntity } from 'src/core/entities/user.entity';
+import { ArtworkPaginatedResponseDto } from 'src/core/dtos/artwork/artwork-paginated-response.dto';
 
 @Controller('artwork')
 export class ArtworkController {
@@ -39,7 +41,14 @@ export class ArtworkController {
   }
 
   @Get()
-  async findAll(): Promise<ArtworkResponseDto[]> {
+  async findAll(
+    @Query('page', ParseIntPipe) page?: number,
+    @Query('limit', ParseIntPipe) limit?: number,
+  ): Promise<ArtworkResponseDto[] | ArtworkPaginatedResponseDto> {
+    if (page && limit) {
+      return await this.artworkService.findAllPublicPaginated(page, limit);
+    }
+
     return await this.artworkService.findAll();
   }
 

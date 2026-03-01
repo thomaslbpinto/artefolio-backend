@@ -10,6 +10,7 @@ import { randomUUID } from 'crypto';
 import { ImageEntity } from 'src/core/entities/image.entity';
 import { ImageProviderEnum } from 'src/core/enums/image-provider.enum';
 import { ARTWORK_RELATIONS } from 'src/core/relations/artwork.relation';
+import { VisibilityEnum } from 'src/core/enums/visibility.enum';
 
 @Injectable()
 export class ArtworkRepository {
@@ -115,6 +116,19 @@ export class ArtworkRepository {
     return await this.artworkRepository.find({
       order: { createdAt: 'DESC' },
       relations: ARTWORK_RELATIONS,
+    });
+  }
+
+  async findAllPublicPaginated(page: number, limit: number): Promise<[ArtworkEntity[], total: number]> {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    return await this.artworkRepository.findAndCount({
+      where: {
+        visibility: VisibilityEnum.PUBLIC,
+      },
+      relations: ARTWORK_RELATIONS,
+      skip: (page - 1) * limit,
+      take: limit,
     });
   }
 
