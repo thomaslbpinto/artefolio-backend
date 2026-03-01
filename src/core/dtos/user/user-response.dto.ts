@@ -1,5 +1,5 @@
 import { Expose, Transform } from 'class-transformer';
-import { UserEntity } from '../entities/user.entity';
+import { UserEntity } from '../../entities/user.entity';
 
 export class UserResponseDto {
   @Expose()
@@ -32,4 +32,7 @@ export class UserResponseDto {
 
   @Expose()
   updatedAt: Date;
+
+  @Expose()
+  deletedAt?: Date;
 }

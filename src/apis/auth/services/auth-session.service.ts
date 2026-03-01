@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { Response, Request } from 'express';
 import { plainToInstance } from 'class-transformer';
 import { UserEntity } from 'src/core/entities/user.entity';
-import { UserResponseDto } from 'src/core/dtos/user.response.dto';
+import { UserResponseDto } from 'src/core/dtos/user/user-response.dto';
 import { AuthResponseDto } from 'src/core/dtos/auth/auth-response.dto';
 import { CLASS_TRANSFORMER_OPTIONS } from 'src/core/configs/class-transformer.config';
 import { generateHexToken, assertTokenExists, assertTokenNotExpired } from 'src/core/utils/token.util';
@@ -15,7 +15,7 @@ import {
   setAccessTokenCookie,
   setRefreshTokenCookie,
 } from 'src/core/helpers/auth-cookie.helper';
-import { RefreshTokenRepository } from '../../refresh-token/refresh-token.repository';
+import { RefreshTokenService } from '../../../core/auth/refresh-token/refresh-token.service';
 import { REFRESH_TOKEN_EXPIRY_DAYS } from 'src/core/constants/cookie.constant';
 
 @Injectable()
@@ -23,7 +23,7 @@ export class AuthSessionService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly refreshTokenRepository: RefreshTokenRepository,
+    private readonly refreshTokenService: RefreshTokenService,
   ) {}
 
   async createSession(response: Response, user: UserEntity | UserResponseDto): Promise<AuthResponseDto> {
@@ -34,11 +34,7 @@ export class AuthSessionService {
 
     const refreshToken = generateHexToken(64);
 
-    await this.refreshTokenRepository.create(
-      user.id,
-      refreshToken,
-      generateExpirationInDays(REFRESH_TOKEN_EXPIRY_DAYS),
-    );
+    await this.refreshTokenService.create(user.id, refreshToken, generateExpirationInDays(REFRESH_TOKEN_EXPIRY_DAYS));
 
     setAccessTokenCookie(response, accessToken, this.configService);
     setRefreshTokenCookie(response, refreshToken, this.configService);
@@ -54,11 +50,11 @@ export class AuthSessionService {
       throw new UnauthorizedException('No refresh token.');
     }
 
-    const storedRefreshToken = await this.refreshTokenRepository.findByToken(refreshToken);
+    const storedRefreshToken = await this.refreshTokenService.findByToken(refreshToken);
 
     assertTokenExists(storedRefreshToken, 'Invalid refresh token.');
     await assertTokenNotExpired(storedRefreshToken, 'Refresh token expired.', async () => {
-      await this.refreshTokenRepository.deleteByToken(refreshToken);
+      await this.refreshTokenService.deleteByToken(refreshToken);
     });
 
     const accessToken = this.jwtService.sign({

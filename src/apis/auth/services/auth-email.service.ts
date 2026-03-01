@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { UserRepository } from '../../user/user.repository';
-import { EmailService } from '../../email/email.service';
-import { OtpCodeService } from '../../otp-code/otp-code.service';
+import { EmailService } from '../../../core/email/email.service';
+import { OtpCodeService } from '../../../core/auth/otp-code/otp-code.service';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { assertTokenExists, assertTokenNotExpired } from 'src/core/utils/token.util';
 import { compareOtpCode, generateOtpCode, hashOtpCode } from 'src/core/utils/otp-code.util';

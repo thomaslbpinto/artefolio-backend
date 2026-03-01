@@ -1,0 +1,4 @@
+export const IMAGE_MAX_WIDTH = 2048;
+export const IMAGE_WEBP_QUALITY = 80;
+export const IMAGE_MAX_FILE_SIZE_MB = 10;
+export const IMAGE_MAX_FILE_SIZE_BYTES = IMAGE_MAX_FILE_SIZE_MB * 1024 * 1024;

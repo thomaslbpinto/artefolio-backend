@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { CreateUserDto } from 'src/core/dtos/create-user.dto';
-import { UserResponseDto } from 'src/core/dtos/user.response.dto';
+import { CreateUserDto } from 'src/core/dtos/user/create-user.dto';
+import { UserResponseDto } from 'src/core/dtos/user/user-response.dto';
 import { UserRepository } from './user.repository';
-import { UpdateUserDto } from 'src/core/dtos/update-user.dto';
+import { UpdateUserDto } from 'src/core/dtos/user/update-user.dto';
 import { CLASS_TRANSFORMER_OPTIONS } from 'src/core/configs/class-transformer.config';
 
 @Injectable()

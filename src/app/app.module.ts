@@ -8,9 +8,13 @@ import { ImageEntity } from '../core/entities/image.entity';
 import { UserEntity } from '../core/entities/user.entity';
 import { RefreshTokenEntity } from '../core/entities/refresh-token.entity';
 import { OtpCodeEntity } from '../core/entities/otp-code.entity';
-import { UserModule } from '../apis/user/user.module';
 import { AuthModule } from '../apis/auth/auth.module';
 import { JwtAuthGuard } from '../core/guards/jwt-auth.guard';
+import { StorageModule } from '../core/storage/storage.module';
+import { UserModule } from '../apis/user/user.module';
+import { ArtworkModule } from '../apis/artwork/artwork.module';
+import { CollectionModule } from 'src/apis/collection/collection.module';
+import { ImageModule } from 'src/apis/image/image.module';
 import fs from 'fs';
 import path from 'path';
 
@@ -42,7 +46,11 @@ import path from 'path';
       },
     }),
     AuthModule,
+    StorageModule,
     UserModule,
+    ArtworkModule,
+    CollectionModule,
+    ImageModule,
   ],
   controllers: [],
   providers: [

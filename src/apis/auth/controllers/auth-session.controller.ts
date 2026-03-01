@@ -4,7 +4,7 @@ import { plainToInstance } from 'class-transformer';
 import { AuthResponseDto } from 'src/core/dtos/auth/auth-response.dto';
 import { Public } from 'src/core/decorators/public.decorator';
 import { CurrentUser } from 'src/core/decorators/current-user.decorator';
-import { UserResponseDto } from 'src/core/dtos/user.response.dto';
+import { UserResponseDto } from 'src/core/dtos/user/user-response.dto';
 import { CLASS_TRANSFORMER_OPTIONS } from 'src/core/configs/class-transformer.config';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { AuthSessionService } from '../services/auth-session.service';

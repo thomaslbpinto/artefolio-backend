@@ -8,21 +8,21 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { ArtworkEntity } from './artwork.entity';
 import { ImageProviderEnum } from '../enums/image-provider.enum';
+import { ArtworkEntity } from './artwork.entity';
 
 @Entity('image')
 export class ImageEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255 })
   key: string;
 
-  @Column({ type: 'enum', enum: ImageProviderEnum, nullable: false })
+  @Column({ type: 'enum', enum: ImageProviderEnum })
   provider: ImageProviderEnum;
 
-  @Column({ name: 'mime_type' })
+  @Column({ name: 'mime_type', type: 'varchar', length: 255 })
   mimeType: string;
 
   @Column({ type: 'bigint' })
@@ -33,6 +33,9 @@ export class ImageEntity {
 
   @Column({ type: 'int' })
   height: number;
+
+  @Column({ type: 'int', default: 1 })
+  order: number;
 
   @ManyToOne(() => ArtworkEntity, (artwork) => artwork.images, {
     onDelete: 'CASCADE',

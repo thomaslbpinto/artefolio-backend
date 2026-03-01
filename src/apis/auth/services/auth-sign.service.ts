@@ -7,7 +7,7 @@ import { comparePassword, hashPassword } from 'src/core/utils/password.util';
 import { AuthSessionService } from './auth-session.service';
 import { PendingGoogleService } from './pending-google.service';
 import { clearAuthCookies, getRefreshTokenFromCookie } from 'src/core/helpers/auth-cookie.helper';
-import { RefreshTokenRepository } from 'src/apis/refresh-token/refresh-token.repository';
+import { RefreshTokenService } from 'src/core/auth/refresh-token/refresh-token.service';
 import { Response, Request } from 'express';
 import { AuthEmailService } from './auth-email.service';
 import { OTP_CODE_EXPIRATION_IN_MINUTES } from 'src/core/constants/otp-code.constant';
@@ -17,7 +17,7 @@ import { OtpPurpose } from 'src/core/enums/otp-purpose.enum';
 import { generateExpirationInMinutes } from 'src/core/utils/expiration.util';
 import { generateOtpCode, hashOtpCode } from 'src/core/utils/otp-code.util';
 import { DataSource } from 'typeorm';
-import { EmailService } from 'src/apis/email/email.service';
+import { EmailService } from 'src/core/email/email.service';
 
 @Injectable()
 export class AuthSignService {
@@ -26,7 +26,7 @@ export class AuthSignService {
     private readonly emailService: EmailService,
     private readonly authSessionService: AuthSessionService,
     private readonly pendingGoogleService: PendingGoogleService,
-    private readonly refreshTokenRepository: RefreshTokenRepository,
+    private readonly refreshTokenService: RefreshTokenService,
     private readonly authEmailService: AuthEmailService,
     private readonly dataSource: DataSource,
   ) {}
@@ -94,7 +94,8 @@ export class AuthSignService {
       await this.emailService.sendEmailVerificationEmail(user.email, user.name, otpCode);
 
       return this.authSessionService.createSession(response, user);
-    } catch {
+    } catch (error) {
+      console.log(error);
       await queryRunner.rollbackTransaction();
 
       throw new InternalServerErrorException('Failed to create account.');
@@ -107,14 +108,14 @@ export class AuthSignService {
     const refreshToken = getRefreshTokenFromCookie(request);
 
     if (refreshToken) {
-      await this.refreshTokenRepository.deleteByToken(refreshToken);
+      await this.refreshTokenService.deleteByToken(refreshToken);
     }
 
     clearAuthCookies(response);
   }
 
   async signOutAll(userId: number, response: Response): Promise<void> {
-    await this.refreshTokenRepository.deleteByUserId(userId);
+    await this.refreshTokenService.deleteByUserId(userId);
 
     clearAuthCookies(response);
   }

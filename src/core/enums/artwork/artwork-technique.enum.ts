@@ -1,0 +1,71 @@
+export enum ArtworkTechniqueEnum {
+  // Painting
+  ACRYLIC_PAINTING = 'Acrylic Painting',
+  OIL_PAINTING = 'Oil Painting',
+  WATERCOLOR = 'Watercolor',
+  GOUACHE = 'Gouache',
+  TEMPERA = 'Tempera',
+  ENCAUSTIC = 'Encaustic',
+  SPRAY_PAINT = 'Spray Paint',
+  AIRBRUSH = 'Airbrush',
+  ALCOHOL_INK = 'Alcohol Ink',
+
+  // Drawing
+  PENCIL_DRAWING = 'Pencil Drawing',
+  COLORED_PENCIL = 'Colored Pencil',
+  GRAPHITE = 'Graphite',
+  CHARCOAL = 'Charcoal',
+  INK = 'Ink',
+  INK_WASH = 'Ink Wash',
+  MARKER = 'Marker',
+  CRAYON = 'Crayon',
+  CHALK = 'Chalk',
+  BALLPOINT_PEN = 'Ballpoint Pen',
+  SCRATCHBOARD = 'Scratchboard',
+  WATERCOLOR_PENCIL = 'Watercolor Pencil',
+
+  // Printmaking
+  ENGRAVING = 'Engraving',
+  ETCHING = 'Etching',
+  DRYPOINT = 'Drypoint',
+  MEZZOTINT = 'Mezzotint',
+  LITHOGRAPHY = 'Lithography',
+  LINOCUT = 'Linocut',
+  WOODCUT = 'Woodcut',
+  SCREEN_PRINTING = 'Screen Printing',
+  MONOTYPE = 'Monotype',
+  MONOPRINT = 'Monoprint',
+
+  // Sculpture & Physical
+  SCULPTURE = 'Sculpture',
+  CLAY_MODELING = 'Clay Modeling',
+  CERAMICS = 'Ceramics',
+  BRONZE_CASTING = 'Bronze Casting',
+  MARBLE_SCULPTURE = 'Marble Sculpture',
+  MOSAIC = 'Mosaic',
+  GLASS_ART = 'Glass Art',
+  RESIN_ART = 'Resin Art',
+  ASSEMBLAGE = 'Assemblage',
+  MIXED_MEDIA = 'Mixed Media',
+
+  // Photography
+  PHOTOGRAPHY = 'Photography',
+  FILM_PHOTOGRAPHY = 'Film Photography',
+  DIGITAL_PHOTOGRAPHY = 'Digital Photography',
+  MACRO_PHOTOGRAPHY = 'Macro Photography',
+  LONG_EXPOSURE = 'Long Exposure',
+
+  // Digital
+  DIGITAL_ILLUSTRATION = 'Digital Illustration',
+  DIGITAL_PAINTING = 'Digital Painting',
+  DIGITAL_COLLAGE = 'Digital Collage',
+  PHOTOBASHING = 'Photobashing',
+  PIXEL_ART = 'Pixel Art',
+  VECTOR_ART = 'Vector Art',
+  MODELING_3D = '3D Modeling',
+  SCULPTING_3D = '3D Sculpting',
+  RENDERING_3D = '3D Rendering',
+  PROCEDURAL_ART = 'Procedural Art',
+  GENERATIVE_ART = 'Generative Art',
+  AI_ART = 'AI Art',
+}

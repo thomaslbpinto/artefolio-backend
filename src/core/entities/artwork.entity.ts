@@ -1,7 +1,3 @@
-import { ArtworkGenreEnum } from '../enums/artwork-genre.enum';
-import { ArtworkTechniqueEnum } from '../enums/artwork-technique.enum';
-import { ArtworkTypeEnum } from '../enums/artwork-type.enum';
-import { ArtworkVisibilityEnum } from '../enums/artwork-visibility.enum';
 import {
   Column,
   CreateDateColumn,
@@ -13,9 +9,13 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { UserEntity } from './user.entity';
+import { ArtworkGenreEnum } from '../enums/artwork/artwork-genre.enum';
+import { ArtworkTechniqueEnum } from '../enums/artwork/artwork-technique.enum';
+import { ArtworkTypeEnum } from '../enums/artwork/artwork-type.enum';
+import { VisibilityEnum } from '../enums/visibility.enum';
 import { CollectionEntity } from './collection.entity';
 import { ImageEntity } from './image.entity';
+import { UserEntity } from './user.entity';
 
 @Entity('artwork')
 export class ArtworkEntity {
@@ -25,7 +25,7 @@ export class ArtworkEntity {
   @Column({ type: 'enum', enum: ArtworkTypeEnum })
   type: ArtworkTypeEnum;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255 })
   title: string;
 
   @Column({ type: 'text', nullable: true })
@@ -34,14 +34,14 @@ export class ArtworkEntity {
   @Column({ type: 'int', nullable: true })
   year?: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   country?: string;
 
-  @Column({ type: 'enum', enum: ArtworkTechniqueEnum, nullable: true })
-  technique?: ArtworkTechniqueEnum;
+  @Column({ type: 'enum', enum: ArtworkTechniqueEnum, array: true, nullable: true })
+  technique?: ArtworkTechniqueEnum[];
 
-  @Column({ type: 'enum', enum: ArtworkGenreEnum, nullable: true })
-  genre?: ArtworkGenreEnum;
+  @Column({ type: 'enum', enum: ArtworkGenreEnum, array: true, nullable: true })
+  genre?: ArtworkGenreEnum[];
 
   @Column({
     name: 'physical_height',
@@ -90,10 +90,10 @@ export class ArtworkEntity {
 
   @Column({
     type: 'enum',
-    enum: ArtworkVisibilityEnum,
-    default: ArtworkVisibilityEnum.PUBLIC,
+    enum: VisibilityEnum,
+    default: VisibilityEnum.PUBLIC,
   })
-  visibility: ArtworkVisibilityEnum;
+  visibility: VisibilityEnum;
 
   @OneToMany(() => ImageEntity, (image) => image.artwork)
   images: ImageEntity[];

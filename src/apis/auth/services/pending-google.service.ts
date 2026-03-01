@@ -86,7 +86,8 @@ export class PendingGoogleService {
       }
 
       return plainToInstance(GoogleProfileDto, decoded, CLASS_TRANSFORMER_OPTIONS);
-    } catch {
+    } catch (error) {
+      console.log(error);
       return null;
     }
   }

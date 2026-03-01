@@ -7,7 +7,7 @@ import { GoogleSignUpCompleteDto } from 'src/core/dtos/auth/google/google-sign-u
 import { AuthResponseDto } from 'src/core/dtos/auth/auth-response.dto';
 import { AuthSessionService } from './auth-session.service';
 import { PendingGoogleService } from './pending-google.service';
-import { OtpCodeService } from '../../otp-code/otp-code.service';
+import { OtpCodeService } from '../../../core/auth/otp-code/otp-code.service';
 import { OtpPurpose } from 'src/core/enums/otp-purpose.enum';
 
 @Injectable()

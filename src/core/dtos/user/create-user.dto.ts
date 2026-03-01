@@ -10,7 +10,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { USERNAME_REGEX, USERNAME_REGEX_MESSAGE } from 'src/core/utils/username.util';
+import { USERNAME_REGEX, USERNAME_REGEX_MESSAGE } from '../../utils/username.util';
 
 export class CreateUserDto {
   @IsString()

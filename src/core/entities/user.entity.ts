@@ -1,13 +1,14 @@
 import {
   Column,
-  Entity,
-  PrimaryGeneratedColumn,
   CreateDateColumn,
-  UpdateDateColumn,
   DeleteDateColumn,
+  Entity,
   OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { ArtworkEntity } from './artwork.entity';
+import { CollectionEntity } from './collection.entity';
 
 @Entity('user')
 export class UserEntity {
@@ -51,6 +52,9 @@ export class UserEntity {
 
   @OneToMany(() => ArtworkEntity, (artwork) => artwork.user)
   artworks: ArtworkEntity[];
+
+  @OneToMany(() => CollectionEntity, (collection) => collection.user)
+  collections: CollectionEntity[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone' })
   createdAt: Date;

@@ -1,9 +1,9 @@
 import { Injectable, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { UserRepository } from '../../user/user.repository';
 import { UserEntity } from 'src/core/entities/user.entity';
-import { EmailService } from '../../email/email.service';
-import { OtpCodeService } from '../../otp-code/otp-code.service';
-import { RefreshTokenRepository } from '../../refresh-token/refresh-token.repository';
+import { EmailService } from '../../../core/email/email.service';
+import { OtpCodeService } from '../../../core/auth/otp-code/otp-code.service';
+import { RefreshTokenService } from '../../../core/auth/refresh-token/refresh-token.service';
 import { assertTokenExists, assertTokenNotExpired } from 'src/core/utils/token.util';
 import { compareOtpCode, generateOtpCode, hashOtpCode } from 'src/core/utils/otp-code.util';
 import { OTP_CODE_LENGTH, OTP_CODE_RESEND_COOLDOWN_IN_SECONDS } from 'src/core/constants/otp-code.constant';
@@ -14,7 +14,7 @@ import { ResendCooldownDto } from 'src/core/dtos/auth/resend-cooldown.dto';
 export class AuthPasswordService {
   constructor(
     private readonly otpCodeService: OtpCodeService,
-    private readonly refreshTokenRepository: RefreshTokenRepository,
+    private readonly refreshTokenService: RefreshTokenService,
     private readonly userRepository: UserRepository,
     private readonly emailService: EmailService,
   ) {}
@@ -99,7 +99,7 @@ export class AuthPasswordService {
     const userId = user.id;
 
     await this.otpCodeService.deleteByUserId(userId, OtpPurpose.PASSWORD_RESET);
-    await this.refreshTokenRepository.deleteByUserId(userId);
+    await this.refreshTokenService.deleteByUserId(userId);
     await this.userRepository.update(userId, { password: newPassword });
   }
 }

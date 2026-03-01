@@ -8,10 +8,11 @@ import { RefreshTokenEntity } from 'src/core/entities/refresh-token.entity';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { GoogleStrategy } from 'src/core/strategies/google.strategy';
 import { JwtStrategy } from 'src/core/strategies/jwt.strategy';
-import { EmailModule } from '../email/email.module';
-import { OtpCodeRepository } from '../otp-code/otp-code.repository';
-import { OtpCodeService } from '../otp-code/otp-code.service';
-import { RefreshTokenRepository } from '../refresh-token/refresh-token.repository';
+import { EmailModule } from '../../core/email/email.module';
+import { OtpCodeRepository } from '../../core/auth/otp-code/otp-code.repository';
+import { OtpCodeService } from '../../core/auth/otp-code/otp-code.service';
+import { RefreshTokenRepository } from '../../core/auth/refresh-token/refresh-token.repository';
+import { RefreshTokenService } from '../../core/auth/refresh-token/refresh-token.service';
 import { AuthEmailController } from './controllers/auth-email.controller';
 import { AuthGoogleController } from './controllers/auth-google.controller';
 import { AuthPasswordController } from './controllers/auth-password.controller';
@@ -57,6 +58,7 @@ import { ACCESS_TOKEN_EXPIRY } from 'src/core/constants/cookie.constant';
     OtpCodeRepository,
     OtpCodeService,
     RefreshTokenRepository,
+    RefreshTokenService,
     UserRepository,
     GoogleStrategy,
     JwtStrategy,

@@ -1,9 +1,9 @@
 import { NotFoundException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateUserDto } from 'src/core/dtos/create-user.dto';
+import { CreateUserDto } from 'src/core/dtos/user/create-user.dto';
 import { UserEntity } from 'src/core/entities/user.entity';
 import { Repository } from 'typeorm';
-import { UpdateUserDto } from 'src/core/dtos/update-user.dto';
+import { UpdateUserDto } from 'src/core/dtos/user/update-user.dto';
 import { hashPassword } from 'src/core/utils/password.util';
 
 @Injectable()
