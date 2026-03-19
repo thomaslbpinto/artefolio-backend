@@ -1,16 +1,16 @@
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { IsNumber, IsOptional, Min } from 'class-validator';
 
 export class PaginationDto {
   @Expose()
   @IsOptional()
-  @IsNumber()
+  @Type(() => Number)
   @Min(1)
   page?: number = 1;
 
   @Expose()
   @IsOptional()
-  @IsNumber()
+  @Type(() => Number)
   @Min(1)
   limit?: number = 18;
 

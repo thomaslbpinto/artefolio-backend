@@ -37,6 +37,13 @@ export class ImageEntity {
   @Column({ type: 'int', default: 1 })
   order: number;
 
+  @Column({
+    type: 'vector',
+    length: 768,
+    nullable: true,
+  })
+  embedding?: number[];
+
   @ManyToOne(() => ArtworkEntity, (artwork) => artwork.images, {
     onDelete: 'CASCADE',
   })

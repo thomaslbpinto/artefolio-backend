@@ -1,4 +1,4 @@
 export enum ArtworkTypeEnum {
-  DIGITAL = 'digital',
-  PHYSICAL = 'physical',
+  DIGITAL = 'Digital',
+  PHYSICAL = 'Physical',
 }

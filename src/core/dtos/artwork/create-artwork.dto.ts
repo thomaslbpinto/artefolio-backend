@@ -18,6 +18,7 @@ import { ArtworkTechniqueEnum } from '../../enums/artwork/artwork-technique.enum
 import { ArtworkTypeEnum } from '../../enums/artwork/artwork-type.enum';
 import { VisibilityEnum } from '../../enums/visibility.enum';
 import { ToArray } from 'src/core/decorators/to-array.decorator';
+import { MAX_ARTWORK_GENRES, MAX_ARTWORK_TAGS, MAX_ARTWORK_TECHNIQUES } from 'src/core/constants/artwork.constant';
 
 export class CreateArtworkDto {
   @IsEnum(ArtworkTypeEnum)
@@ -47,14 +48,14 @@ export class CreateArtworkDto {
   @IsOptional()
   @ToArray<ArtworkTechniqueEnum>()
   @IsArray()
-  @ArrayMaxSize(5)
+  @ArrayMaxSize(MAX_ARTWORK_TECHNIQUES)
   @IsEnum(ArtworkTechniqueEnum, { each: true })
   technique?: ArtworkTechniqueEnum[];
 
   @IsOptional()
   @ToArray<ArtworkGenreEnum>()
   @IsArray()
-  @ArrayMaxSize(5)
+  @ArrayMaxSize(MAX_ARTWORK_GENRES)
   @IsEnum(ArtworkGenreEnum, { each: true })
   genre?: ArtworkGenreEnum[];
 
@@ -106,7 +107,7 @@ export class CreateArtworkDto {
   @ToArray<string>()
   @IsArray()
   @IsString({ each: true })
-  @ArrayMaxSize(50)
+  @ArrayMaxSize(MAX_ARTWORK_TAGS)
   @MaxLength(100, { each: true })
   tags?: string[];
 

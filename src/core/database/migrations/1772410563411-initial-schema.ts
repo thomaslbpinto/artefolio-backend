@@ -1,25 +1,25 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class InitialSchema1772323529924 implements MigrationInterface {
-  name = 'InitialSchema1772323529924';
+export class InitialSchema1772410563411 implements MigrationInterface {
+  name = 'InitialSchema1772410563411';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`CREATE TYPE "public"."collection_visibility_enum" AS ENUM('public', 'private')`);
+    await queryRunner.query(`CREATE TYPE "public"."collection_visibility_enum" AS ENUM('Public', 'Private')`);
     await queryRunner.query(
       `CREATE TABLE "collection" ("id" SERIAL NOT NULL, "name" character varying(100) NOT NULL, "description" character varying(255), "visibility" "public"."collection_visibility_enum" NOT NULL DEFAULT 'public', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP WITH TIME ZONE, "user_id" integer NOT NULL, CONSTRAINT "PK_ad3f485bbc99d875491f44d7c85" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(`CREATE TYPE "public"."image_provider_enum" AS ENUM('cloudflare')`);
     await queryRunner.query(
-      `CREATE TABLE "image" ("id" SERIAL NOT NULL, "key" character varying(255) NOT NULL, "provider" "public"."image_provider_enum" NOT NULL, "mime_type" character varying(255) NOT NULL, "size" bigint NOT NULL, "width" integer NOT NULL, "height" integer NOT NULL, "order" integer NOT NULL DEFAULT '1', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP WITH TIME ZONE, "artwork_id" integer, CONSTRAINT "PK_d6db1ab4ee9ad9dbe86c64e4cc3" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "image" ("id" SERIAL NOT NULL, "key" character varying(255) NOT NULL, "provider" "public"."image_provider_enum" NOT NULL, "mime_type" character varying(255) NOT NULL, "size" bigint NOT NULL, "width" integer NOT NULL, "height" integer NOT NULL, "order" integer NOT NULL DEFAULT '1', "embedding" vector(768), "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP WITH TIME ZONE, "artwork_id" integer, CONSTRAINT "PK_d6db1ab4ee9ad9dbe86c64e4cc3" PRIMARY KEY ("id"))`,
     );
-    await queryRunner.query(`CREATE TYPE "public"."artwork_type_enum" AS ENUM('digital', 'physical')`);
+    await queryRunner.query(`CREATE TYPE "public"."artwork_type_enum" AS ENUM('Digital', 'Physical')`);
     await queryRunner.query(
       `CREATE TYPE "public"."artwork_technique_enum" AS ENUM('Acrylic Painting', 'Oil Painting', 'Watercolor', 'Gouache', 'Tempera', 'Encaustic', 'Spray Paint', 'Airbrush', 'Alcohol Ink', 'Pencil Drawing', 'Colored Pencil', 'Graphite', 'Charcoal', 'Ink', 'Ink Wash', 'Marker', 'Crayon', 'Chalk', 'Ballpoint Pen', 'Scratchboard', 'Watercolor Pencil', 'Engraving', 'Etching', 'Drypoint', 'Mezzotint', 'Lithography', 'Linocut', 'Woodcut', 'Screen Printing', 'Monotype', 'Monoprint', 'Sculpture', 'Clay Modeling', 'Ceramics', 'Bronze Casting', 'Marble Sculpture', 'Mosaic', 'Glass Art', 'Resin Art', 'Assemblage', 'Mixed Media', 'Photography', 'Film Photography', 'Digital Photography', 'Macro Photography', 'Long Exposure', 'Digital Illustration', 'Digital Painting', 'Digital Collage', 'Photobashing', 'Pixel Art', 'Vector Art', '3D Modeling', '3D Sculpting', '3D Rendering', 'Procedural Art', 'Generative Art', 'AI Art')`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."artwork_genre_enum" AS ENUM('Renaissance', 'Baroque', 'Romanticism', 'Realism', 'Impressionism', 'Expressionism', 'Cubism', 'Art Nouveau', 'Art Deco', 'Contemporary', 'Conceptual Art', 'Hyperrealism', 'Neo-Expressionism', 'Lowbrow', 'Abstract', 'Figurative', 'Portrait', 'Landscape', 'Seascape', 'Cityscape', 'Still Life', 'Genre Scene', 'Narrative', 'Historical', 'Mythological', 'Religious', 'Political', 'Social Commentary', 'Dark Art', 'Gothic', 'Minimalist', 'Surreal', 'Nature', 'Botanical', 'Floral', 'Animal', 'Wildlife', 'Maritime', 'Space', 'Vehicle', 'Automotive', 'Military', 'Sports', 'Food Art', 'Illustration', 'Editorial', 'Children''s Illustration', 'Book Cover', 'Game Art', 'Matte Painting', 'Character Design', 'Concept Art', 'Fan Art', 'Pop Culture', 'Street Photography', 'Fine Art Photography', 'Fashion', 'Documentary', 'Environmental', 'Industrial', 'Street', 'Urban')`,
     );
-    await queryRunner.query(`CREATE TYPE "public"."artwork_visibility_enum" AS ENUM('public', 'private')`);
+    await queryRunner.query(`CREATE TYPE "public"."artwork_visibility_enum" AS ENUM('Public', 'Private')`);
     await queryRunner.query(
       `CREATE TABLE "artwork" ("id" SERIAL NOT NULL, "type" "public"."artwork_type_enum" NOT NULL, "title" character varying(255) NOT NULL, "description" text, "year" integer, "country" character varying(255), "technique" "public"."artwork_technique_enum" array, "genre" "public"."artwork_genre_enum" array, "physical_height" numeric(10,2), "physical_width" numeric(10,2), "physical_depth" numeric(10,2), "digital_height" integer, "digital_width" integer, "file_size" bigint, "materials" text, "tools" text, "tags" text array, "visibility" "public"."artwork_visibility_enum" NOT NULL DEFAULT 'public', "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP WITH TIME ZONE, "collection_id" integer, "user_id" integer NOT NULL, CONSTRAINT "PK_ee2e7c5ad7226179d4113a96fa8" PRIMARY KEY ("id"))`,
     );

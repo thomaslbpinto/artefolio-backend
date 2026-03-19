@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from 
 import { ImageResponseDto } from 'src/core/dtos/image/image-response.dto';
 import { ImageService } from './image.service';
 import { CreateImageDto } from 'src/core/dtos/image/create-image.dto';
-// import { UpdateImageDto } from 'src/core/dtos/image/update-image.dto';
+import { UpdateImageDto } from 'src/core/dtos/image/update-image.dto';
 
 @Controller('image')
 export class ImageController {
@@ -23,10 +23,10 @@ export class ImageController {
     return await this.imageService.findAll();
   }
 
-  // @Patch(':id')
-  // async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateImageDto): Promise<ImageResponseDto> {
-  //   return await this.imageService.update(id, dto);
-  // }
+  @Patch(':id')
+  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateImageDto): Promise<ImageResponseDto> {
+    return await this.imageService.update(id, dto);
+  }
 
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: number): Promise<ImageResponseDto> {

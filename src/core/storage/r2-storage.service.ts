@@ -28,7 +28,7 @@ export class R2StorageService implements StorageService {
       }),
     );
 
-    return `${this.configService.get('R2_PUBLIC_URL')}/${key}`;
+    return this.getPublicUrl(key);
   }
 
   async deleteFile(key: string): Promise<void> {
@@ -38,5 +38,9 @@ export class R2StorageService implements StorageService {
         Key: key,
       }),
     );
+  }
+
+  getPublicUrl(key: string): string {
+    return `${this.configService.get('R2_PUBLIC_URL')}/${key}`;
   }
 }

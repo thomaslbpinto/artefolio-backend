@@ -1,9 +1,9 @@
 import { NotFoundException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateImageDto } from 'src/core/dtos/image/create-image.dto';
+import { UpdateImageDto } from 'src/core/dtos/image/update-image.dto';
 import { ImageEntity } from 'src/core/entities/image.entity';
 import { Repository } from 'typeorm';
-// import { UpdateImageDto } from 'src/core/dtos/image/update-image.dto';
 
 @Injectable()
 export class ImageRepository {
@@ -35,11 +35,11 @@ export class ImageRepository {
     });
   }
 
-  // async update(id: number, dto: UpdateImageDto): Promise<ImageEntity> {
-  //   await this.findOne(id);
-  //   const image = this.imageRepository.create(dto);
-  //   return await this.imageRepository.save(image);
-  // }
+  async update(id: number, dto: UpdateImageDto): Promise<ImageEntity> {
+    await this.findOne(id);
+    const image = this.imageRepository.create(dto);
+    return await this.imageRepository.save(image);
+  }
 
   async remove(id: number): Promise<ImageEntity> {
     const image = await this.findOne(id);

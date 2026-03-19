@@ -8,6 +8,14 @@ export function ToArray<T>() {
       return undefined;
     }
 
-    return Array.isArray(value) ? value : [value];
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.includes(',')) {
+      return value.split(',').map((item) => item.trim()) as T[];
+    }
+
+    return [value];
   });
 }
